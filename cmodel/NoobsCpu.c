@@ -3,8 +3,8 @@
 * Description   : C-model for the NoobsCpu ISA
 * Organization  : NONE 
 * Creation Date : 15-03-2019
-* Last Modified : Monday 25 March 2019 11:30:33 PM IST
-* Author        : Supratim Das (supratimofficio.com)
+* Last Modified : Monday 25 March 2019 11:46:22 PM IST
+* Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 #include "NoobsCpu_Util.h"
 #include "NoobsCpu_defines.h"
