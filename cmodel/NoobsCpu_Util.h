@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+void debug_printf(const char * format, ... );
+
 //load instructions from compiled File
 //supported formats: hex/decimal/binary
 void load_instructions();

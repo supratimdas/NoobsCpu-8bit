@@ -3,7 +3,7 @@
 * Description   : C-model for the NoobsCpu ISA
 * Organization  : NONE 
 * Creation Date : 15-03-2019
-* Last Modified : Sunday 24 March 2019 11:49:51 PM IST
+* Last Modified : Monday 25 March 2019 11:30:33 PM IST
 * Author        : Supratim Das (supratimofficio.com)
 ************************************************************/ 
 #include "NoobsCpu_Util.h"
@@ -24,7 +24,7 @@ uint8_t     cr;     //control register
 /****************************CONTROL_REGISTER BIT MAP*******************************
  *|    7    |    6    |    5    |    4    |    3    |    2    |    1    |    0    |
  *+---------+---------+---------+---------+---------+---------+---------+---------+
- *|  RSVD   |SP_MSB11 |SP_MSB10 | SP_MSB9 | SP_MSB8 |   BU    |  BCNZ   |   BCZ   |
+ *|  RSVD   |  RSVD   |SP_MSB10 | SP_MSB9 | SP_MSB8 |   BU    |  BCNZ   |   BCZ   |
  *+---------+---------+---------+---------+---------+---------+---------+---------+
  */
 
@@ -59,7 +59,7 @@ execution_frame_t exec_params;
 void noobs_cpu_init(){
     pc = 0;
     sr = 0;
-    cr = 0;
+    cr = CR_SP_INIT_MSB;
     sp = 0;
     exec_params.execute_control = 0;
     exec_params.src0_val = 0;
@@ -71,51 +71,143 @@ void noobs_cpu_init(){
     ifetch_en = 1;
 }
 
+void update_status_regs(){
+    //update status reg
+    switch(exec_params.execute_control){
+        case EXEC_NOP:
+        case MEM_OPERATION_RD:
+        case MEM_OPERATION_WR:
+        case CPU_OPERATION_JMP:
+        case CPU_OPERATION_CALL:
+            sr = sr & ~(SR_Z | SR_NZ | SR_OVF);
+            break;
+        case ALU_OPERATION_ADD:
+        case ALU_OPERATION_SUB:
+            if(exec_params.result & 0xff00) {
+                sr = sr | SR_OVF;
+            }else{
+                sr = sr & ~SR_OVF;
+            }
+
+            if(exec_params.result & 0x00ff) {
+                sr = sr | SR_NZ;
+                sr = sr & ~SR_Z;
+            }else{
+                sr = sr | SR_Z;
+                sr = sr & ~SR_NZ;
+            }
+            break;
+        case ALU_OPERATION_AND:
+        case ALU_OPERATION_OR:
+        case ALU_OPERATION_XOR:
+            sr = sr & ~(SR_OVF);
+            break;
+
+    }
+}
+
 
 void execute(){
+    uint16_t stack_addr;
+    uint16_t ret_addr;
 #ifdef NOOBS_DEBUG
     printf("execute \n");
 #endif
     if(exec_params.execute_en) {
-        switch(exec_params.execute_en) {
+        switch(exec_params.execute_control) {
             case EXEC_NOP :
+                update_status_regs();
+                debug_printf("{EXEC_NOP:} ");
                 break;
             case ALU_OPERATION_ADD : 
                 exec_params.result = exec_params.src0_val + exec_params.src1_val;
                 regs[exec_params.dst_reg] = exec_params.result;
+                update_status_regs();
+                debug_printf("{EXEC_ADD: regs[%u] = %u + %u. value = %u} ",exec_params.dst_reg, exec_params.src0_val,exec_params.src1_val,exec_params.result);
                 break;
-            case ALU_OPERATION_MUL :
-                exec_params.result = exec_params.src0_val * exec_params.src1_val;
+            case ALU_OPERATION_SUB :
+                exec_params.result = exec_params.src0_val - exec_params.src1_val;
                 regs[exec_params.dst_reg] = exec_params.result;
+                update_status_regs();
+                debug_printf("{EXEC_SUB: regs[%u] = %u - %u. value = %u} ",exec_params.dst_reg, exec_params.src0_val,exec_params.src1_val,exec_params.result);
                 break;
             case ALU_OPERATION_AND :
                 exec_params.result = exec_params.src0_val & exec_params.src1_val;
                 regs[exec_params.dst_reg] = exec_params.result;
+                update_status_regs();
+                debug_printf("{EXEC_AND: regs[%u] = %u & %u. value = %u} ",exec_params.dst_reg, exec_params.src0_val,exec_params.src1_val,exec_params.result);
                 break;
             case ALU_OPERATION_OR :
                 exec_params.result = exec_params.src0_val | exec_params.src1_val;
                 regs[exec_params.dst_reg] = exec_params.result;
+                update_status_regs();
+                debug_printf("{EXEC_OR: regs[%u] = %u | %u. value = %u} ",exec_params.dst_reg, exec_params.src0_val,exec_params.src1_val,exec_params.result);
                 break;
             case ALU_OPERATION_XOR :
                 exec_params.result = exec_params.src0_val ^ exec_params.src1_val;
                 regs[exec_params.dst_reg] = exec_params.result;
+                update_status_regs();
+                debug_printf("{EXEC_XOR: regs[%u] = %u ^ %u. value = %u} ",exec_params.dst_reg, exec_params.src0_val,exec_params.src1_val,exec_params.result);
                 break;
             case MEM_OPERATION_RD :
                 regs[exec_params.dst_reg] = data_mem[exec_params.address];
+                update_status_regs();
+                debug_printf("{MEM_OPERATION_RD: regs[%u] <= data[%u]. value = %u} ",exec_params.dst_reg,exec_params.address, data_mem[exec_params.address]);
                 break;
             case MEM_OPERATION_WR :
                 data_mem[exec_params.address] = regs[exec_params.dst_reg];
+                update_status_regs();
+                debug_printf("{MEM_OPERATION_WR: regs[%u] => data[%u]. value = %u} ",exec_params.dst_reg,exec_params.address, data_mem[exec_params.address]);
                 break;
             case CPU_OPERATION_JMP :
-                //TODO: implement jmp
+                if((cr & SET_BCZ) && (sr & SR_Z)){  //branch if zero
+                    pc = exec_params.address;
+                }else if((cr & SET_BCNZ) && (sr & SR_NZ)){  //branch if not-zero
+                    pc = exec_params.address;
+                }else if((cr & (SET_BCZ|SET_BCNZ))){    //unconditionl branch
+                    pc = exec_params.address;
+                }
+                ifetch_en = 1;
+                update_status_regs();
                 break;
             case CPU_OPERATION_CALL :
-                //TODO: impmenet call
+                stack_addr = (((cr >> 3) & 0x07) << 8) | sp;
+                data_mem[stack_addr] = ((pc >> 8) & 0x07);
+                data_mem[stack_addr+1] = (pc & 0xff);
+                if((cr & SET_BCZ) && (sr & SR_Z)){  //branch if zero
+                    pc = exec_params.address;
+                    sp+=2;
+                }else if((cr & SET_BCNZ) && (sr & SR_NZ)){  //branch if not-zero
+                    pc = exec_params.address;
+                    sp+=2;
+                }else if((cr & (SET_BCZ|SET_BCNZ))){    //unconditionl branch
+                    pc = exec_params.address;
+                    sp+=2;
+                }
+                ifetch_en = 1;
+                update_status_regs();
+                break;
+            case CPU_OPERATION_RET :
+                stack_addr = (((cr >> 3) & 0x07) << 8)|sp;
+                ret_addr = (data_mem[stack_addr-2] << 8)|data_mem[stack_addr-1]; 
+                if((cr & SET_BCZ) && (sr & SR_Z)){  //return if zero
+                    pc = ret_addr;
+                    sp-=2;
+                }else if((cr & SET_BCNZ) && (sr & SR_NZ)){  //return if not-zero
+                    pc = ret_addr;
+                    sp-=2;
+                }else if((cr & (SET_BCZ|SET_BCNZ))){    //unconditionl return
+                    pc = ret_addr;
+                    sp-=2;
+                }
+                ifetch_en = 1;
+                update_status_regs();
                 break;
             default :
                 fprintf(stderr,"FATAL: UNKNOWN Execution mode\n");
                 break;
         }
+        exec_params.execute_en = 0;
     }
 }
 
@@ -135,47 +227,61 @@ void idecode(){
                     switch(GET_BASE_OP(prev_instruction)) {
                         case JMP:
                         case CALL:
-                            exec_params.address = instruction + pc; //FIXME: this needs to be fixed
+                            exec_params.address = (((prev_instruction & 0x07) << 8 ) | instruction);
+                            ifetch_en = 0;  //stop fetching new instructions untill the jump call
                             break;
                     }
                     break;
                 case ADD : 
-                case MUL :
+                case SUB :
                 case AND :
                 case XOR :
                     exec_params.src1_val = instruction;
+                    debug_printf("{IDECODE: IMMEDIATE_VAL = %u} ",exec_params.src1_val);
                     break;
                 case LD :
                 case ST :
-                    exec_params.address = (((prev_instruction & 0x0f) << 8 ) | instruction);
+                    exec_params.address = (((prev_instruction & 0x07) << 8 ) | instruction);
+                    debug_printf("{IDECODE: ADDRESS = %u} ",exec_params.address);
                     break;
             }
         }else{
             switch(GET_BASE_OP(instruction)) {
                 case MC_CTRL_USR : 
                     imm_mode = IS_IMM(instruction);
-                    printf("BASE_OP_CODE: MC_CTRL_USR\n");
                     switch(GET_MC_CTRL_USR_OP(instruction)){
                         case MISC :
-                            printf("MC_CTRL_USR:MISC %u\n",instruction);
                             switch(instruction & 0x7) {
                                 case NOP :
-                                    printf("NOP\n");
+                                    exec_params.execute_control = EXEC_NOP; 
+                                    debug_printf("{IDECODE: NOP} ");
                                     break;
                                 case RET :
-                                    //TODO: implement return
-                                    printf("RET\n");
+                                    debug_printf("{IDECODE: RET} ");
+                                    exec_params.execute_control = CPU_OPERATION_RET; 
                                     break;
                                 case HALT :
-                                    printf("HALT\n");
+                                    debug_printf("{IDECODE: HALT} ");
                                     halted = 1;
                                     break;
                                 case RST :
-                                    printf("RESET\n");
+                                    debug_printf("{IDECODE: RESET} ");
                                     noobs_cpu_init();   //flush pipe and reset everything
                                     break;
+                                case SET_BCZ :
+                                    debug_printf("{IDECODE: SET_BCZ} ");
+                                    cr = (cr & (~CR_BCNZ)) | CR_BCZ;
+                                    break;
+                                case SET_BCNZ :
+                                    debug_printf("{IDECODE: SET_BCNZ} ");
+                                    cr = (cr & (~CR_BCZ)) | CR_BCNZ;
+                                    break;
+                                case CLR_BC :
+                                    cr = (cr & (~CR_BCZ));
+                                    cr = (cr & (~CR_BCNZ));
+                                    break;
                                 default:
-                                    fprintf(stderr,"FATAL Error: Unimplemented/RSVD machine control operation");
+                                    fprintf(stderr,"FATAL Error: Unimplemented/RSVD machine control operation\n");
                                     exit(1);
                                     break;
                             }
@@ -186,17 +292,10 @@ void idecode(){
                             exit(1);
                             break;
                         case JMP :
-                            //TODO: implement branch
-                            //the target address is relative to PC
-                            fprintf(stderr,"FATAL Error: JMP is not implemented yet\n");
-                            exit(1);
+                            debug_printf("{IDECODE: JMP} ");
                             break;
                         case CALL :
-                            //TODO: implement subroutine call
-                            //the target address is relative to PC
-                            fprintf(stderr,"FATAL Error: CALL is not implemented yet\n");
-                            exit(1);
-                        default: printf("WTF is this %u\n",GET_MC_CTRL_USR_OP(instruction));
+                            debug_printf("{IDECODE: CALL} ");
                             break;
                     }
                     break;
@@ -206,22 +305,26 @@ void idecode(){
                     if(imm_mode){
                         exec_params.src0_val = GET_REG_VALUE(GET_REG_PTR0(instruction));
                         exec_params.dst_reg = GET_REG_PTR1(instruction);
+                        debug_printf("{IDECODE: ADDI: src0_val = %u, dst_reg = %u} ",exec_params.src0_val,exec_params.dst_reg);
                     }else{
                         exec_params.src0_val = GET_REG_VALUE(GET_REG_PTR0(instruction));
                         exec_params.src1_val = GET_REG_VALUE(GET_REG_PTR1(instruction));
                         exec_params.dst_reg = GET_REG_PTR1(instruction);
+                        debug_printf("{IDECODE: ADD: src0_val = %u, src1_val = %u, dst_reg = %u} ",exec_params.src0_val,exec_params.src1_val,exec_params.dst_reg);
                     }
                     break;
-                case MUL :
-                    exec_params.execute_control = ALU_OPERATION_MUL;
+                case SUB :
+                    exec_params.execute_control = ALU_OPERATION_SUB;
                     imm_mode = IS_IMM(instruction);
                     if(imm_mode){
                         exec_params.src0_val = GET_REG_VALUE(GET_REG_PTR0(instruction));
                         exec_params.dst_reg = GET_REG_PTR1(instruction);
+                        debug_printf("{IDECODE: SUBI: src0_val = %u, dst_reg = %u} ",exec_params.src0_val,exec_params.dst_reg);
                     }else{
                         exec_params.src0_val = GET_REG_VALUE(GET_REG_PTR0(instruction));
                         exec_params.src1_val = GET_REG_VALUE(GET_REG_PTR1(instruction));
                         exec_params.dst_reg = GET_REG_PTR1(instruction);
+                        debug_printf("{IDECODE: SUB: src0_val = %u, src1_val = %u, dst_reg = %u} ",exec_params.src0_val,exec_params.src1_val,exec_params.dst_reg);
                     }
 
                     break;
@@ -231,10 +334,12 @@ void idecode(){
                     if(imm_mode){
                         exec_params.src0_val = GET_REG_VALUE(GET_REG_PTR0(instruction));
                         exec_params.dst_reg = GET_REG_PTR1(instruction);
+                        debug_printf("{IDECODE: ANDI: src0_val = %u, dst_reg = %u} ",exec_params.src0_val,exec_params.dst_reg);
                     }else{
                         exec_params.src0_val = GET_REG_VALUE(GET_REG_PTR0(instruction));
                         exec_params.src1_val = GET_REG_VALUE(GET_REG_PTR1(instruction));
                         exec_params.dst_reg = GET_REG_PTR1(instruction);
+                        debug_printf("{IDECODE: AND: src0_val = %u, src1_val = %u, dst_reg = %u} ",exec_params.src0_val,exec_params.src1_val,exec_params.dst_reg);
                     }
 
                     break;
@@ -244,10 +349,12 @@ void idecode(){
                     if(imm_mode){
                         exec_params.src0_val = GET_REG_VALUE(GET_REG_PTR0(instruction));
                         exec_params.dst_reg = GET_REG_PTR1(instruction);
+                        debug_printf("{IDECODE: ORI: src0_val = %u, dst_reg = %u} ",exec_params.src0_val,exec_params.dst_reg);
                     }else{
                         exec_params.src0_val = GET_REG_VALUE(GET_REG_PTR0(instruction));
                         exec_params.src1_val = GET_REG_VALUE(GET_REG_PTR1(instruction));
                         exec_params.dst_reg = GET_REG_PTR1(instruction);
+                        debug_printf("{IDECODE: OR: src0_val = %u, src1_val = %u, dst_reg = %u} ",exec_params.src0_val,exec_params.src1_val,exec_params.dst_reg);
                     }
 
                     break;
@@ -257,22 +364,26 @@ void idecode(){
                     if(imm_mode){
                         exec_params.src0_val = GET_REG_VALUE(GET_REG_PTR0(instruction));
                         exec_params.dst_reg = GET_REG_PTR1(instruction);
+                        debug_printf("{IDECODE: XORI: src0_val = %u, dst_reg = %u} ",exec_params.src0_val,exec_params.dst_reg);
                     }else{
                         exec_params.src0_val = GET_REG_VALUE(GET_REG_PTR0(instruction));
                         exec_params.src1_val = GET_REG_VALUE(GET_REG_PTR1(instruction));
                         exec_params.dst_reg = GET_REG_PTR1(instruction);
+                        debug_printf("{IDECODE: XOR: src0_val = %u, src1_val = %u, dst_reg = %u} ",exec_params.src0_val,exec_params.src1_val,exec_params.dst_reg);
                     }
 
                     break;
                 case LD :
                     imm_mode = 1;
                     exec_params.execute_control = MEM_OPERATION_RD;
-                    exec_params.dst_reg = (instruction >> 4) & 0x01;
+                    exec_params.dst_reg = GET_LD_ST_REG_PTR(instruction);
+                    debug_printf("{IDECODE: LOAD reg[%u]} ", exec_params.dst_reg);
                     break;
                 case ST :
                     imm_mode = 1;
                     exec_params.execute_control = MEM_OPERATION_WR;
-                    exec_params.dst_reg = (instruction >> 4) & 0x01;
+                    exec_params.dst_reg = GET_LD_ST_REG_PTR(instruction);
+                    debug_printf("{IDECODE: STORE reg[%u]} ", exec_params.dst_reg);
                     break;
             }
             //if mode is immediate, insert a 1 disable execution for 1 cycle 
@@ -294,12 +405,12 @@ void ifetch(){
 #endif
     if(ifetch_en) {
         instruction = instruction_mem[pc++];
-        printf("instruction_mem[%u] = %u\n",pc-1,instruction);
         if(pc >= INST_MEM_SIZE) {
             //TODO: error/trap in status register
             fprintf(stderr, "FATAL: Instruction memory access out of bounds\n");
             exit(1);
         }
+        debug_printf("{IFETCH: PC=%04u  instruction=%hhx} ",(pc-1),instruction);
         idecode_en = 1;
     }else{  //if ifetch is disabled return NOP
         instruction = 0;
@@ -319,6 +430,10 @@ int main(int argc, char** argv){
 
     uint16_t cycle_counter = 0;
 
+    if(getenv("NOOBS_DEBUG")){
+        uint8_t val = atoi((getenv("NOOBS_DEBUG")));
+        printf("debug_mode %u\n",val);
+    }
     
     load_instructions();
     printf("Instructions Loaded to Instruction Memory\n");
@@ -330,13 +445,17 @@ int main(int argc, char** argv){
 
     //3 stage basic pipeline
     while(!halted){
+        debug_printf("\nExecution Cycle : %05d ::>",cycle_counter);
         execute();
         idecode();
         ifetch();
         cycle_counter++;
-        printf("Execution Cycle : %05d\n",cycle_counter);
     }
 
-    printf("Execution Halted at cycle : %05d. PC: %04d\n",cycle_counter,pc);
+    printf("\nExecution Halted at cycle : %05d. PC: %04d",cycle_counter,pc);
+
+    store_data();
+    printf("\nfinal_memory dumped in noobs_data_result.txt\n");
+
     return 0;
 }
