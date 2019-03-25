@@ -1,6 +1,6 @@
 # NoobsCpu-8bit
 # This is a simple TOY 8bit cpu architecture for fun as a side project
-
+<pre>
 this has a complete c-model/v-model/assembler/synthesis scripts for ice40 fpga
 
 long term, I'd like to add simple peripherals around it such as uart/spi and treat it as simple mcu, running a simple game
@@ -19,3 +19,4 @@ NoobsCpu-8bit/
 replaced MUL instruction with SUB.
 Implemented almost entirely the entire instruction set in cmodel
 updated the ISA, changed program/data space from 4K to 2K
+</pre>
