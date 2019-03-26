@@ -24,7 +24,7 @@
 #define LD              6                           // Data Load
 #define ST              7                           // Data Store
 
-#define CR_SP_INIT_MSB     0x38
+#define CR_SP_INIT_MSB     0x1c
 #define CR_BCNZ            0x02
 #define CR_BCZ             0x01
 //sub type of MC_CTRL_USR base operation
@@ -53,6 +53,7 @@
 #define CPU_OPERATION_JMP   0x08
 #define CPU_OPERATION_CALL  0x09
 #define CPU_OPERATION_RET   0x0a
+#define EXEC_IDLE           0x0b
 
 #define SR_OVF              0x01
 #define SR_ST_OVF           0x02

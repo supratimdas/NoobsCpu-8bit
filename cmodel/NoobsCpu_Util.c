@@ -3,7 +3,7 @@
 * Description   : utilities code for the NoobsCpu ISA
 * Organization  : NONE 
 * Creation Date : 25-03-2019
-* Last Modified : Monday 25 March 2019 11:47:31 PM IST
+* Last Modified : Tuesday 26 March 2019 08:57:51 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 
@@ -128,7 +128,7 @@ void store_data(){
         fprintf(stderr, "FATAL: unable to create file noobs_data_result.txt.\n");
         exit(1);
     }
-    for(data_buff_ptr=0; data_buff_ptr < DATA_MEM_SIZE; data_buff_ptr++) {
+    for(data_buff_ptr=8; data_buff_ptr < DATA_MEM_SIZE; data_buff_ptr++) {
         fprintf(data_file,"%hhx\n", data_mem[data_buff_ptr]);
     }
     fclose(data_file);

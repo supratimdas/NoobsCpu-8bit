@@ -1,0 +1,17 @@
+//To build the executable:
+make clean && make
+
+//description of files
+noobs_inst.txt => machine code in ASCII hex (output of assembler)
+noobs_data.txt => data memory in ASCII hex (output of assembler)
+noobs_data_result.txt => this contains the memory dump, after the functional model completes execution
+
+
+//To enable Debug prints:
+set the following environment variable NOOBS_DEBUG to 1.
+in csh: setenv NOOBS_DEBUG 1
+in bash: export NOOBS_DEBUG=1
+
+//TODO List:
+1. Add support in the cmodel to take instruction/data files from commandline
+2. Add support in the cmodel to support differnt formats including binary/hex

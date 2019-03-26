@@ -3,7 +3,7 @@
 * Description   : C-model for the NoobsCpu ISA
 * Organization  : NONE 
 * Creation Date : 15-03-2019
-* Last Modified : Tuesday 26 March 2019 08:25:11 PM IST
+* Last Modified : Tuesday 26 March 2019 10:44:17 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 #include "NoobsCpu_Util.h"
@@ -24,7 +24,7 @@ uint8_t     cr;     //control register
 /****************************CONTROL_REGISTER BIT MAP*******************************
  *|    7    |    6    |    5    |    4    |    3    |    2    |    1    |    0    |
  *+---------+---------+---------+---------+---------+---------+---------+---------+
- *|  RSVD   |  RSVD   |SP_MSB10 | SP_MSB9 | SP_MSB8 |   BU    |  BCNZ   |   BCZ   |
+ *|  RSVD   |  RSVD   |  RSVD   | SP_MSB10| SP_MSB9 | SP_MSB8 |  BCNZ   |   BCZ   |
  *+---------+---------+---------+---------+---------+---------+---------+---------+
  */
 
@@ -160,13 +160,13 @@ void execute(){
                 debug_printf("{MEM_OPERATION_WR: regs[%u] => data[%u]. value = %u} ",exec_params.dst_reg,exec_params.address, data_mem[exec_params.address]);
                 break;
             case CPU_OPERATION_JMP :
-                if((cr & SET_BCZ) && (sr & SR_Z)){  //branch if zero
+                if((cr & CR_BCZ) && (sr & SR_Z)){  //branch if zero
                     pc = exec_params.address;
                     debug_printf("{CPU_OPERATION_JMPZ} ");
-                }else if((cr & SET_BCNZ) && (sr & SR_NZ)){  //branch if not-zero
+                }else if((cr & CR_BCNZ) && (sr & SR_NZ)){  //branch if not-zero
                     pc = exec_params.address;
                     debug_printf("{CPU_OPERATION_JMPNZ} ");
-                }else if(!(cr & (SET_BCZ|SET_BCNZ))){    //unconditionl branch
+                }else if(!(cr & (CR_BCZ|CR_BCNZ))){    //unconditionl branch
                     pc = exec_params.address;
                     debug_printf("{CPU_OPERATION_JMP} ");
                 }else{
@@ -179,44 +179,22 @@ void execute(){
                 stack_addr = (((cr >> 3) & 0x07) << 8) | sp;
                 data_mem[stack_addr] = ((pc >> 8) & 0x07);
                 data_mem[stack_addr+1] = (pc & 0xff);
-                if((cr & SET_BCZ) && (sr & SR_Z)){  //branch if zero
-                    pc = exec_params.address;
-                    sp+=2;
-                    debug_printf("{CPU_OPERATION_CALLZ} ");
-                }else if((cr & SET_BCNZ) && (sr & SR_NZ)){  //branch if not-zero
-                    pc = exec_params.address;
-                    sp+=2;
-                    debug_printf("{CPU_OPERATION_CALLNZ} ");
-                }else if(!(cr & (SET_BCZ|SET_BCNZ))){    //unconditionl branch
-                    pc = exec_params.address;
-                    sp+=2;
-                    debug_printf("{CPU_OPERATION_CALL} ");
-                }else{
-                    debug_printf("{CPU_OPERATION_CALL FALSE} ");
-                }
+                pc = exec_params.address;
+                sp+=2;
+                debug_printf("{CPU_OPERATION_CALL} ");
                 ifetch_en = 1;
                 update_status_regs();
                 break;
             case CPU_OPERATION_RET :
                 stack_addr = (((cr >> 3) & 0x07) << 8)|sp;
                 ret_addr = (data_mem[stack_addr-2] << 8)|data_mem[stack_addr-1]; 
-                if((cr & SET_BCZ) && (sr & SR_Z)){  //return if zero
-                    pc = ret_addr;
-                    sp-=2;
-                    debug_printf("{CPU_OPERATION_RETZ} ");
-                }else if((cr & SET_BCNZ) && (sr & SR_NZ)){  //return if not-zero
-                    pc = ret_addr;
-                    sp-=2;
-                    debug_printf("{CPU_OPERATION_RETNZ} ");
-                }else if(!(cr & (SET_BCZ|SET_BCNZ))){    //unconditionl return
-                    pc = ret_addr;
-                    sp-=2;
-                    debug_printf("{CPU_OPERATION_RET} ");
-                }else{
-                    debug_printf("{CPU_OPERATION_RET FALSE} ");
-                }
+                pc = ret_addr;
+                sp-=2;
+                debug_printf("{CPU_OPERATION_RET} ");
                 ifetch_en = 1;
                 update_status_regs();
+                break;
+            case EXEC_IDLE:
                 break;
             default :
                 fprintf(stderr,"FATAL: UNKNOWN Execution mode\n");
@@ -290,16 +268,19 @@ void idecode(){
                                     noobs_cpu_init();   //flush pipe and reset everything
                                     break;
                                 case SET_BCZ :
-                                    debug_printf("{IDECODE: SET_BCZ} ");
                                     cr = (cr & (~CR_BCNZ)) | CR_BCZ;
+                                    debug_printf("{IDECODE: SET_BCZ %02x} ",cr);
+                                    exec_params.execute_control = EXEC_IDLE;
                                     break;
                                 case SET_BCNZ :
-                                    debug_printf("{IDECODE: SET_BCNZ} ");
                                     cr = (cr & (~CR_BCZ)) | CR_BCNZ;
+                                    debug_printf("{IDECODE: SET_BCNZ %02x} ",cr);
+                                    exec_params.execute_control = EXEC_IDLE;
                                     break;
                                 case CLR_BC :
-                                    cr = (cr & (~CR_BCZ));
-                                    cr = (cr & (~CR_BCNZ));
+                                    debug_printf("{IDECODE: CLR_BC} ");
+                                    cr = (cr & (~(CR_BCZ | CR_BCNZ)));
+                                    exec_params.execute_control = EXEC_IDLE;
                                     break;
                                 default:
                                     fprintf(stderr,"FATAL Error: Unimplemented/RSVD machine control operation\n");

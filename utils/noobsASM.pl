@@ -12,7 +12,11 @@ $OP_CODE_HASH{SET_BCZ}  = 0b000_00_100;
 $OP_CODE_HASH{SET_BCNZ} = 0b000_00_101;
 $OP_CODE_HASH{CLR_BC}   = 0b000_00_110;
 $OP_CODE_HASH{CALL}     = 0b000_11_000;
+#$OP_CODE_HASH{CALLZ}    = 0b000_11_000;
+#$OP_CODE_HASH{CALLNZ}   = 0b000_11_000;
 $OP_CODE_HASH{JMP}      = 0b000_10_000;
+$OP_CODE_HASH{JMPZ}     = 0b000_10_000;
+$OP_CODE_HASH{JMPNZ}    = 0b000_10_000;
 $OP_CODE_HASH{ADD}      = 0b001_0_00_00;
 $OP_CODE_HASH{ADDI}     = 0b001_1_00_00;
 $OP_CODE_HASH{SUB}      = 0b010_0_00_00;
@@ -167,21 +171,29 @@ while (<ASM>) {
             my $ARGS = defined($inst_token[1]) ? $inst_token[1] : "";
             my @ARGLIST = split(',',$ARGS);
             my $num_args = @ARGLIST;
+            if(not defined($OP_CODE_HASH{$OPCODE})) {
+                die "ERROR: Undefined OPCODE ${OPCODE}\n";
+            }
             if($OPCODE =~ /I$/) {   #immediate op
                 my $dst_reg = oct($REGISTER_HASH{$ARGLIST[0]}) << 2;
                 my $src_reg = oct($REGISTER_HASH{$ARGLIST[1]});
                 $code_mem[$code_index++] = $OP_CODE_HASH{$OPCODE} | $dst_reg | $src_reg;
                 $code_mem[$code_index++] = oct($ARGLIST[2]);
             }elsif($OPCODE =~ /(JMP|CALL|LOAD|STORE)/) {    #address based ops also immediate
-                if($OPCODE =~ /(JMPZ|CALLZ)/) {
+                if($OPCODE =~ /JMPZ/) {
                     if($last_branch_condition!=1) {
                         $code_mem[$code_index++] = $OP_CODE_HASH{SET_BCZ};
                         $last_branch_condition = 1;
                     }
-                }elsif($OPCODE =~ /(JMPNZ|CALLNZ)/){
+                }elsif($OPCODE =~ /JMPNZ/){
                     if($last_branch_condition!=2) {
                         $code_mem[$code_index++] = $OP_CODE_HASH{SET_BCNZ};
                         $last_branch_condition = 2;
+                    }
+                }elsif($OPCODE =~ /JMP/) {
+                    if($last_branch_condition!=0) {
+                        $code_mem[$code_index++] = $OP_CODE_HASH{CLR_BC};
+                        $last_branch_condition = 0;
                     }
                 }
                 my $address = 0;
