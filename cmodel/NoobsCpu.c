@@ -3,7 +3,7 @@
 * Description   : C-model for the NoobsCpu ISA
 * Organization  : NONE 
 * Creation Date : 15-03-2019
-* Last Modified : Monday 25 March 2019 11:46:22 PM IST
+* Last Modified : Tuesday 26 March 2019 08:25:11 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 #include "NoobsCpu_Util.h"
@@ -162,10 +162,15 @@ void execute(){
             case CPU_OPERATION_JMP :
                 if((cr & SET_BCZ) && (sr & SR_Z)){  //branch if zero
                     pc = exec_params.address;
+                    debug_printf("{CPU_OPERATION_JMPZ} ");
                 }else if((cr & SET_BCNZ) && (sr & SR_NZ)){  //branch if not-zero
                     pc = exec_params.address;
-                }else if((cr & (SET_BCZ|SET_BCNZ))){    //unconditionl branch
+                    debug_printf("{CPU_OPERATION_JMPNZ} ");
+                }else if(!(cr & (SET_BCZ|SET_BCNZ))){    //unconditionl branch
                     pc = exec_params.address;
+                    debug_printf("{CPU_OPERATION_JMP} ");
+                }else{
+                    debug_printf("{CPU_OPERATION_JMP FALSE} ");
                 }
                 ifetch_en = 1;
                 update_status_regs();
@@ -177,12 +182,17 @@ void execute(){
                 if((cr & SET_BCZ) && (sr & SR_Z)){  //branch if zero
                     pc = exec_params.address;
                     sp+=2;
+                    debug_printf("{CPU_OPERATION_CALLZ} ");
                 }else if((cr & SET_BCNZ) && (sr & SR_NZ)){  //branch if not-zero
                     pc = exec_params.address;
                     sp+=2;
-                }else if((cr & (SET_BCZ|SET_BCNZ))){    //unconditionl branch
+                    debug_printf("{CPU_OPERATION_CALLNZ} ");
+                }else if(!(cr & (SET_BCZ|SET_BCNZ))){    //unconditionl branch
                     pc = exec_params.address;
                     sp+=2;
+                    debug_printf("{CPU_OPERATION_CALL} ");
+                }else{
+                    debug_printf("{CPU_OPERATION_CALL FALSE} ");
                 }
                 ifetch_en = 1;
                 update_status_regs();
@@ -193,12 +203,17 @@ void execute(){
                 if((cr & SET_BCZ) && (sr & SR_Z)){  //return if zero
                     pc = ret_addr;
                     sp-=2;
+                    debug_printf("{CPU_OPERATION_RETZ} ");
                 }else if((cr & SET_BCNZ) && (sr & SR_NZ)){  //return if not-zero
                     pc = ret_addr;
                     sp-=2;
-                }else if((cr & (SET_BCZ|SET_BCNZ))){    //unconditionl return
+                    debug_printf("{CPU_OPERATION_RETNZ} ");
+                }else if(!(cr & (SET_BCZ|SET_BCNZ))){    //unconditionl return
                     pc = ret_addr;
                     sp-=2;
+                    debug_printf("{CPU_OPERATION_RET} ");
+                }else{
+                    debug_printf("{CPU_OPERATION_RET FALSE} ");
                 }
                 ifetch_en = 1;
                 update_status_regs();
@@ -224,11 +239,16 @@ void idecode(){
             exec_params.execute_en = 1;
             switch(GET_BASE_OP(prev_instruction)) {
                 case MC_CTRL_USR : 
-                    switch(GET_BASE_OP(prev_instruction)) {
+                    switch(GET_MC_CTRL_USR_OP(prev_instruction)) {
                         case JMP:
                         case CALL:
                             exec_params.address = (((prev_instruction & 0x07) << 8 ) | instruction);
+                            debug_printf("{IDECODE: ADDRESS = %u} ",exec_params.address);
                             ifetch_en = 0;  //stop fetching new instructions untill the jump call
+                            break;
+                        default: 
+                            fprintf(stderr,"FATAL: Something wrong with OPCODE %02x\n",prev_instruction);
+                            exit(1);
                             break;
                     }
                     break;
@@ -259,6 +279,7 @@ void idecode(){
                                 case RET :
                                     debug_printf("{IDECODE: RET} ");
                                     exec_params.execute_control = CPU_OPERATION_RET; 
+                                    ifetch_en = 0;
                                     break;
                                 case HALT :
                                     debug_printf("{IDECODE: HALT} ");
@@ -292,9 +313,11 @@ void idecode(){
                             exit(1);
                             break;
                         case JMP :
+                            exec_params.execute_control = CPU_OPERATION_JMP;
                             debug_printf("{IDECODE: JMP} ");
                             break;
                         case CALL :
+                            exec_params.execute_control = CPU_OPERATION_CALL;
                             debug_printf("{IDECODE: CALL} ");
                             break;
                     }
@@ -449,6 +472,7 @@ int main(int argc, char** argv){
         execute();
         idecode();
         ifetch();
+        debug_printf(",[SP=0x%03x * PC=0x%03x * SR=0x%02x * CR=0x%02x] ",sp,pc,sr,cr);
         cycle_counter++;
     }
 
