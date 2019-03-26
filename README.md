@@ -13,10 +13,16 @@ NoobsCpu-8bit/
     |---Doc     : documentation/scratch work while working on the project. The start was with an xls file that briefly captures the ISA
     |
     |---vmodel  : verilog RTL for the processor.
+    |
+    |
+    |---utils   : A simple 2-pass assembler written in perl for the NoobsCpu-ISA
 
 /*Notes*/
 3/25/2019: 
 replaced MUL instruction with SUB.
 Implemented almost entirely the entire instruction set in cmodel
 updated the ISA, changed program/data space from 4K to 2K
+
+3/26/2019:
+A simple 2 pass assembler written in perl for the CPU.
 </pre>
