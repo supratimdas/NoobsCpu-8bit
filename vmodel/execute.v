@@ -1,9 +1,9 @@
 /*********************************************************** 
 * File Name     : execute.v
-* Description   :
+* Description   : execute unit
 * Organization  : NONE 
 * Creation Date : 07-03-2020
-* Last Modified : Saturday 07 March 2020 01:31:37 PM IST
+* Last Modified : Tuesday 23 June 2020 03:03:36 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 
@@ -18,6 +18,7 @@ module execute(
     reg_src0_data,  //<i 
     reg_src1_data,  //<i 
     imm_data,       //<i
+    imm_data_vld,   //<i
     dst_reg,        //<i
     reg_wr_data,    //>o
     reg_wr_sel,     //>o
@@ -26,7 +27,8 @@ module execute(
     dst_addr,       //<i
     exec_ctrl,      //<i
     d_mem_addr,     //>o
-    d_mem_data,     //<io>
+    d_mem_data_in,  //<i
+    d_mem_data_out, //>o
     d_mem_en,       //>o
     d_mem_rd,       //>o
     d_mem_wr        //>o
@@ -43,20 +45,99 @@ module execute(
     input [7:0]     reg_src0_data;
     input [7:0]     reg_src1_data;
     input [7:0]     imm_data;
+    input           imm_data_vld;
 
     input [2:0]     dst_reg;
 
-    output [7:0]    reg_wr_data;
-    output [2:0]    reg_wr_sel;
-    output          reg_wr_en;
+    output reg [7:0]    reg_wr_data;
+    output reg [2:0]    reg_wr_sel;
+    output reg [0:0]    reg_wr_en;
     
-    input  [3:0]    exec_ctrl;
-    input  [11:0]   dst_addr;
-    output [11:0]   d_mem_addr;
-    output [7:0]    d_mem_data;
-    output          d_mem_en;
-    output          d_mem_rd;
-    output          d_mem_wr;
+    input  [3:0]        exec_ctrl;
+    input  [11:0]       dst_addr;
+    output [11:0]       d_mem_addr;
+    output [7:0]        d_mem_data_out;
+    input  [7:0]        d_mem_data_in;
+    output              d_mem_en;
+    output              d_mem_rd;
+    output              d_mem_wr;
 
-    //other implementation stuff here
+    wire [7:0] src0_data;
+    wire [7:0] src1_data;
+
+    assign d_mem_addr = dst_addr;
+
+    reg [3:0] exec_ctrl_1D; //1 cycle delayed version, since register read/imm value takes 1 cycle
+
+    //use 1 cycle delayed version of exec_ctrl, 1 cycle is required for register read/read from memory
+    always @(posedge clk) begin
+        if(!reset_) begin
+            exec_ctrl_1D[3:0] <= `EXEC_NOP;
+        end
+        else begin
+            exec_ctrl_1D[3:0] <= exec_ctrl;
+        end
+    end
+
+    //src0 & src1 data (these are available +1 cycle after decode generates the selects)
+    assign src0_data = reg_src0_data;
+    assign src1_data = imm_data_vld ? imm_data : reg_src1_data; //immediate value will also be available in the next cycle since the immediate value is encoded in the next 8 bit of the original instruction
+
+    //generate memory access control signals
+    assign d_mem_rd = (exec_ctrl_1D[3:0] == `MEM_OPERATION_RD);
+    assign d_mem_wr = (exec_ctrl_1D[3:0] == `MEM_OPERATION_WR);
+    assign d_mem_en = (d_mem_wr || d_mem_rd);
+
+    assign d_mem_data_out[7:0] = src0_data;
+
+    //actual operation based on the encoded exec_ctrl info
+    always @(*) begin
+        reg_wr_data = 8'd0;
+        reg_wr_en   = 1'b0;
+        reg_wr_sel  = dst_reg;
+        case(exec_ctrl_1D[3:0])
+            `EXEC_NOP : begin
+                $display("{EXEC_NOP:} ");
+            end
+            `ALU_OPERATION_ADD : begin
+                $display("{ALU_OPERATION_ADD:} ");
+                reg_wr_data = src0_data + src1_data;
+                reg_wr_en = 1;
+            end
+            `ALU_OPERATION_SUB : begin
+                $display("{ALU_OPERATION_SUB:} ");
+                reg_wr_data = src0_data - src1_data;
+                reg_wr_en = 1;
+            end
+            `ALU_OPERATION_OR : begin
+                $display("{ALU_OPERATION_OR:} ");
+                reg_wr_data = src0_data | src1_data;
+                reg_wr_en = 1;
+            end
+            `ALU_OPERATION_AND : begin
+                $display("{ALU_OPERATION_AND:} ");
+                reg_wr_data = src0_data & src1_data;
+                reg_wr_en = 1;
+            end
+            `ALU_OPERATION_XOR : begin
+                $display("{ALU_OPERATION_XOR:} ");
+                reg_wr_data = src0_data ^ src1_data;
+                reg_wr_en = 1;
+            end
+            `MEM_OPERATION_RD : begin
+                $display("{MEM_OPERATION_RD:} ");
+            end
+            `MEM_OPERATION_WR : begin
+                $display("{MEM_OPERATION_WR:} ");
+            end
+            `CPU_OPERATION_JMP : begin
+            end
+            `CPU_OPERATION_CALL : begin
+            end
+            `CPU_OPERATION_RET : begin
+            end
+            `EXEC_IDLE : begin
+            end
+        endcase
+    end
 endmodule

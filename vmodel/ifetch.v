@@ -1,22 +1,26 @@
 /*********************************************************** 
 * File Name     : ifetch.v
-* Description   :
+* Description   : instruction fetch unit
 * Organization  : NONE 
 * Creation Date : 11-05-2019
-* Last Modified : Saturday 11 May 2019 10:10:43 PM IST
+* Last Modified : Tuesday 23 June 2020 02:06:45 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
+
+//Short summary:
+//this module implements the instruction fetch logic.
+//this has the program_counter implementation
 
 module ifetch(
     clk,        //< i
     reset_,     //< i
-    branch,     //< i
-    ifetch_en,   //< i
-    inst_i,     //< i
-    tgt_addr,   //< i
-    inst_o,     //> o
-    next_addr,  //> o
-    inst_addr   //> o
+    branch,     //< i branch indication from ctrl unit
+    ifetch_en,  //< i ifetch_en indiaction from ctrl unit
+    inst_i,     //< i instruction input from inst_mem
+    tgt_addr,   //< i tgt branch addr
+    inst_o,     //> o instruction output to decode unit
+    next_addr,  //> o next_addr 
+    inst_addr   //> o addr for instruction memory 
 );
     //IOs
     input           clk;
@@ -51,7 +55,7 @@ module ifetch(
     end
 
     assign next_addr = PC + 1'b1; 
-    assign pc_addr_next = (branch) ? tgt_addr : next_addr;
+    assign pc_addr_next = (ifetch_en) ? ((branch) ? tgt_addr : next_addr) : PC;
     assign inst_addr = pc_addr_next;    //address for inst mem
 
     //registering instruction from instruction mem

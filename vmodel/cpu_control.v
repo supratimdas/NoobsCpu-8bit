@@ -3,7 +3,7 @@
 * Description   :
 * Organization  : NONE 
 * Creation Date : 10-09-2019
-* Last Modified : Saturday 07 March 2020 11:41:00 AM IST
+* Last Modified : Friday 19 June 2020 07:34:12 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com
 ************************************************************/ 
 `define INIT            0
@@ -15,7 +15,7 @@
 module cpu_control (
     clk,                    //<i
     reset_,                 //<i
-    decode2cpu_ctrl_cmd,    //<i
+    decode2cpu_ctrl_cmd,    //<i    soft_rst, halted, exec_en, fetch_en
     cbr_status,             //<i    call, branch, return
 
     ifetch_en,              //>o
@@ -63,6 +63,7 @@ module cpu_control (
 
     assign pc_branch = (cpu_state_next == `CPU_BRANCH);
 
+    //CPU_STATE FSM
     always @(posedge clk) begin
         if(!reset_) begin
             cpu_state <= `INIT;

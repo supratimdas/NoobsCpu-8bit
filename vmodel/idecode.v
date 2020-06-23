@@ -3,7 +3,7 @@
 * Description   :
 * Organization  : NONE 
 * Creation Date : 11-05-2019
-* Last Modified : Saturday 07 March 2020 01:30:32 PM IST
+* Last Modified : Tuesday 23 June 2020 03:02:56 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 
@@ -13,17 +13,18 @@ module idecode (
     clk,                //<i
     reset_,             //<i
     idecode_en,         //<i
-    inst_i,             //<i
+    inst_i,             //<i    //input from ifetch stage
     
-    exec_ctrl,          //>o
-    exec_src0_reg,      //>o
-    exec_src0_reg_rd_en,//>o
-    exec_src1_reg,      //>o
-    exec_src1_reg_rd_en,//>o
-    exec_dst_reg,       //>o
-    exec_addr,          //>o
-    exec_imm_val,       //>o
-    decode2cpu_ctrl_cmd //>o
+    exec_ctrl,          //>o    //encoded execute control to execute unit
+    exec_src0_reg,      //>o    //register file rd_sel_0
+    exec_src0_reg_rd_en,//>o    //rd_en_0
+    exec_src1_reg,      //>o    //register file rd_sel_1
+    exec_src1_reg_rd_en,//>o    //rd_en_1
+    exec_dst_reg,       //>o    //register file wr_reg_sel
+    exec_addr,          //>o    //data memory access addr
+    exec_imm_val,       //>o    //immediate value
+    exec_imm_val_vld,   //>o    //immediate value valid
+    decode2cpu_ctrl_cmd //>o    //cmd for cpu_ctrl fsm :soft_rst, halted, exec_en, fetch_en
 );
     //IOs
     input            clk;
@@ -38,6 +39,7 @@ module idecode (
     output reg [2:0]    exec_src1_reg;
     output reg [0:0]    exec_src1_reg_rd_en;
     output reg [7:0]    exec_imm_val;
+    output reg [0:0]    exec_imm_val_vld;
     output reg [2:0]    exec_dst_reg;
     output reg [11:0]   exec_addr;
 
@@ -58,6 +60,7 @@ module idecode (
     reg        exec_src1_reg_rd_en_next;
     reg [7:0]  exec_dst_reg_next;
     reg [7:0]  exec_imm_val_next;
+    reg        exec_imm_val_vld_next;
 
     reg [11:0] exec_addr_next;
     reg [3:0]  exec_ctrl_next;
@@ -80,6 +83,7 @@ module idecode (
 
     assign decode2cpu_ctrl_cmd = {soft_rst, halted, exec_en, fetch_en};
 
+    //retimer
     always @(posedge clk) begin
         if(!reset_) begin 
             imm_mode            <= 1'b0;
@@ -93,6 +97,7 @@ module idecode (
             exec_src1_reg_rd_en <= 1'b0;
             exec_dst_reg        <= 3'd0; 
             exec_imm_val        <= 8'd0;
+            exec_imm_val_vld    <= 1'b0;
             exec_en             <= 1'b0;
             halted              <= 1'b0;
             soft_rst            <= 1'b0;
@@ -109,6 +114,7 @@ module idecode (
             exec_src1_reg_rd_en <= exec_src1_reg_rd_en_next;
             exec_dst_reg        <= exec_dst_reg_next;
             exec_imm_val        <= exec_imm_val_next;
+            exec_imm_val_vld    <= exec_imm_val_vld_next;
             exec_en             <= exec_en_next;
             halted              <= halted_next;
             soft_rst            <= soft_rst_next;
@@ -128,6 +134,7 @@ module idecode (
         exec_dst_reg_next = exec_dst_reg;
         exec_ctrl_next = exec_ctrl;
         exec_imm_val_next = exec_imm_val;
+        exec_imm_val_vld_next = exec_imm_val_vld;
         halted_next = 1'b0;
         soft_rst_next = 1'b0;
 
@@ -136,8 +143,10 @@ module idecode (
         
         if(idecode_en) begin // {
             if(imm_mode) begin // {
+                exec_imm_val_vld_next = 1'b1;
                 imm_mode_next = 1'b0;
                 exec_en_next = 1'b1;
+                exec_ctrl_next = `EXEC_NOP;
                 casez(`GET_BASE_OP(prev_inst))
                     `MC_CTRL_USR : begin
                         casez(`GET_MC_CTRL_USR_OP(prev_inst)) 
@@ -178,6 +187,7 @@ module idecode (
             end //} imm_mode
             else begin //{ !imm_mode
                 imm_mode_next = `IS_IMM(curr_inst);
+                exec_imm_val_vld_next = 1'b0;
                 casez(`GET_BASE_OP(curr_inst))
                     `MC_CTRL_USR: begin
                         casez(`GET_MC_CTRL_USR_OP(curr_inst))
@@ -337,7 +347,8 @@ module idecode (
                     end
                     `ST: begin
                         exec_ctrl_next = `MEM_OPERATION_WR;
-                        exec_dst_reg_next = `GET_LD_ST_REG_PTR(curr_inst);
+                        exec_src0_reg_next = `GET_LD_ST_REG_PTR(curr_inst);
+                        exec_src0_reg_rd_en_next = 1'b1;
                         imm_mode_next = 1'b1;
                         $display("{IDECODE: STORE reg[%u]} ", exec_dst_reg_next);
                     end

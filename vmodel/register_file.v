@@ -1,11 +1,15 @@
 /*********************************************************** 
 * File Name     : register_file.v
-* Description   :
+* Description   : this is the register file model
 * Organization  : NONE 
 * Creation Date : 01-09-2019
-* Last Modified : Wednesday 11 September 2019 12:44:37 AM IST
+* Last Modified : Friday 19 June 2020 06:37:57 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
+
+//Short summary
+//This is a simple register file with 2 read ports
+//and a write port. The register width is 8bit wide
 
 module reg_file (
     clk ,       //<i

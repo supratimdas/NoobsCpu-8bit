@@ -1,24 +1,32 @@
 /*********************************************************** 
 * File Name     : noobs_cpu.v
-* Description   :
+* Description   : toplevel file
 * Organization  : NONE 
 * Creation Date : 05-03-2020
-* Last Modified : Saturday 07 March 2020 01:31:11 PM IST
+* Last Modified : Tuesday 23 June 2020 03:06:28 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
+
+//Short Summary:
+//This is the toplevel file that instances
+//fetch_unit
+//decode_unit
+//control_unit
+//register_file
+//it has interfaces for instruction memory and data memory
 
 module noobs_cpu (
     clk,            //<i
     reset_,         //<i
     
-    i_data,         //<i
-    i_addr,         //>o
+    i_data,         //<i inst_mem_data
+    i_addr,         //>o inst_mem_address
 
-    m_data,         //<io> 
-    m_addr,         //>o
-    m_rd,           //>o
-    m_wr,           //>o
-    m_en            //>
+    m_data,         //<io>  data_mem_data
+    m_addr,         //>o    data_mem_addr
+    m_rd,           //>o    data_mem_rd enable
+    m_wr,           //>o    data_mem_wr enable
+    m_en            //>     data_mem en
 );
 
     //IOs
@@ -64,6 +72,7 @@ module noobs_cpu (
     wire            wr_en;
 
     wire [7:0]      imm_data;
+    wire            imm_data_vld;
     wire [11:0]     dst_addr;
 
     wire            execute_en;
@@ -98,6 +107,7 @@ module noobs_cpu (
         .exec_dst_reg(dst_reg),                             //>o
         .exec_addr(dst_addr),                               //>o
         .exec_imm_val(imm_data),                            //>o
+        .exec_imm_val_vld(imm_data_vld),                    //>o
         .decode2cpu_ctrl_cmd(decode2cpu_ctrl_cmd)           //>o
     );
 
@@ -138,6 +148,7 @@ module noobs_cpu (
         .reg_src0_data(rd_data_0),  //<i 
         .reg_src1_data(rd_data_1),  //<i 
         .imm_data(imm_data),        //<i
+        .imm_data_vld(imm_data_vld),//<i
         .dst_reg(dst_reg),          //<i
         .reg_wr_data(wr_data),      //>o
         .reg_wr_sel(wr_sel),        //>o
@@ -145,7 +156,8 @@ module noobs_cpu (
         .exec_ctrl(exec_ctrl),      //<i
         .dst_addr(dst_addr),        //<i
         .d_mem_addr(m_addr),        //>o
-        .d_mem_data(m_data),        //<io>
+        .d_mem_data_in(m_data),     //<io>
+        .d_mem_data_out(m_data),    //<io>
         .d_mem_en(m_en),            //>o
         .d_mem_rd(m_rd),            //>o
         .d_mem_wr(m_wr)             //>o
