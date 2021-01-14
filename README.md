@@ -25,4 +25,7 @@ updated the ISA, changed program/data space from 4K to 2K
 
 3/26/2019:
 A simple 2 pass assembler written in perl for the CPU.
+
+1/14/2021:
+basic tb infra, and cleanup
 </pre>
