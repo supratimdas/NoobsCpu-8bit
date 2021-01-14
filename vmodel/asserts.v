@@ -3,9 +3,10 @@
 * Description   :
 * Organization  : NONE 
 * Creation Date : 01-09-2019
-* Last Modified : Sunday 01 September 2019 12:57:13 PM IST
+* Last Modified : Sunday 03 January 2021 12:03:37 AM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
+`timescale 1ns/1ps
 
 module assert_never (clk, test);
     parameter msg = "assert_never_msg";

@@ -3,9 +3,10 @@
 * Description   : toplevel file
 * Organization  : NONE 
 * Creation Date : 05-03-2020
-* Last Modified : Tuesday 23 June 2020 03:06:28 PM IST
+* Last Modified : Thursday 14 January 2021 09:50:12 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
+`timescale 1ns/1ps
 
 //Short Summary:
 //This is the toplevel file that instances
@@ -51,7 +52,7 @@ module noobs_cpu (
     wire [7:0]      inst_o;
 
     wire            idecode_en;
-    wire [3:0]      decode2cpu_ctrl_cmd;
+    wire [6:0]      decode2cpu_ctrl_cmd;
     wire [3:0]      exec_ctrl;
 
     wire [2:0]      cbr_status;
@@ -78,13 +79,12 @@ module noobs_cpu (
     wire            execute_en;
 
 
-    assign branch = cbr_status[1];
-
     //submodule instances
+    //instance from ifetch.v
     ifetch u_ifetch(
         .clk(clk),              //< i
         .reset_(reset_),        //< i
-        .branch(branch),        //< i
+        .branch(1'b0),          //< i //TODO: implement conditional branching/call
         .ifetch_en(ifetch_en),  //< i
         .inst_i(i_data),        //< i
         .tgt_addr(tgt_addr),    //< i
@@ -94,6 +94,7 @@ module noobs_cpu (
     );
 
 
+    //instance from idecode.v
     idecode u_idecode(
         .clk(clk),                                          //<i
         .reset_(reset_),                                    //<i
@@ -112,11 +113,12 @@ module noobs_cpu (
     );
 
 
+    //instance from cpu_control.v
     cpu_control u_cpu_control(
         .clk(clk),                                      //<i
         .reset_(reset_),                                //<i
         .decode2cpu_ctrl_cmd(decode2cpu_ctrl_cmd),      //<i
-        .cbr_status(cbr_status),                        //<i    call, branch, return
+        .cbr_status(cbr_status),                        //>o    call, branch, return
         .ifetch_en(ifetch_en),                          //>o
         .execute_en(execute_en),                        //>o
         .idecode_en(idecode_en),                        //>o
@@ -162,6 +164,4 @@ module noobs_cpu (
         .d_mem_rd(m_rd),            //>o
         .d_mem_wr(m_wr)             //>o
     );
-
-
 endmodule

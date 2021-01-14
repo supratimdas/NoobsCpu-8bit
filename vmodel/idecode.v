@@ -3,9 +3,10 @@
 * Description   :
 * Organization  : NONE 
 * Creation Date : 11-05-2019
-* Last Modified : Tuesday 23 June 2020 03:02:56 PM IST
+* Last Modified : Thursday 14 January 2021 11:02:49 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
+`timescale 1ns/1ps
 
 `include "noobs_cpu_defines.vh"
 
@@ -24,7 +25,7 @@ module idecode (
     exec_addr,          //>o    //data memory access addr
     exec_imm_val,       //>o    //immediate value
     exec_imm_val_vld,   //>o    //immediate value valid
-    decode2cpu_ctrl_cmd //>o    //cmd for cpu_ctrl fsm :soft_rst, halted, exec_en, fetch_en
+    decode2cpu_ctrl_cmd //>o    //cmd for cpu_ctrl fsm :call, branch, ret, soft_rst, halted, exec_en, fetch_en
 );
     //IOs
     input            clk;
@@ -43,7 +44,7 @@ module idecode (
     output reg [2:0]    exec_dst_reg;
     output reg [11:0]   exec_addr;
 
-    output [3:0]        decode2cpu_ctrl_cmd;
+    output [6:0]        decode2cpu_ctrl_cmd;
 
     //regs
     reg [0:0] imm_mode;
@@ -76,12 +77,19 @@ module idecode (
     reg [0:0] soft_rst_next;
     reg [0:0] soft_rst;
 
+    reg call;
+    reg call_next;
+    reg branch;
+    reg branch_next;
+    reg ret;
+    reg ret_next;
+
     //wires
     wire [7:0] curr_inst;
 
     assign curr_inst = inst_i;
 
-    assign decode2cpu_ctrl_cmd = {soft_rst, halted, exec_en, fetch_en};
+    assign decode2cpu_ctrl_cmd = {call, branch, ret, soft_rst, halted, exec_en, fetch_en};
 
     //retimer
     always @(posedge clk) begin
@@ -101,6 +109,9 @@ module idecode (
             exec_en             <= 1'b0;
             halted              <= 1'b0;
             soft_rst            <= 1'b0;
+            call                <= 1'b0;
+            branch              <= 1'b0;
+            ret                 <= 1'b0;
         end
         else begin
             imm_mode            <= imm_mode_next;
@@ -118,6 +129,9 @@ module idecode (
             exec_en             <= exec_en_next;
             halted              <= halted_next;
             soft_rst            <= soft_rst_next;
+            call                <= call_next;
+            branch              <= branch_next;
+            ret                 <= ret_next;
         end
     end
 
@@ -137,6 +151,9 @@ module idecode (
         exec_imm_val_vld_next = exec_imm_val_vld;
         halted_next = 1'b0;
         soft_rst_next = 1'b0;
+        branch_next = 1'b0;
+        call_next = 1'b0;
+        ret_next = 1'b0;
 
         fatal_err = 1'b0;
         unimplemented_err = 1'b0;
@@ -153,12 +170,14 @@ module idecode (
                             `JMP: begin
                                 exec_addr_next = ((prev_inst & 8'h07) << 8) | curr_inst;
                                 fetch_en_next = 1'b0;
-                                $display("{IDECODE: ADDRESS = %u} ",exec_addr_next);
+                                branch_next = 1'b1;
+                                $display("{IDECODE: ADDRESS = %d} ",exec_addr_next);
                             end
                             `CALL: begin 
                                 exec_addr_next = ((prev_inst & 8'h07) << 8) | curr_inst;
                                 fetch_en_next = 1'b0;
-                                $display("{IDECODE: ADDRESS = %u} ",exec_addr_next);
+                                call_next = 1'b1;
+                                $display("{IDECODE: ADDRESS = %d} ",exec_addr_next);
                             end
                             default: begin
                                 $display("OPCODE: %02x\n",prev_inst);
@@ -172,12 +191,12 @@ module idecode (
                     `AND,
                     `XOR: begin 
                         exec_imm_val_next = curr_inst;
-                        $display("{IDECODE: IMMEDIATE_VAL = %u} ", exec_imm_val_next);
+                        $display("{IDECODE: IMMEDIATE_VAL = %d} ", exec_imm_val_next);
                     end
                     `LD,
                     `ST: begin
                         exec_addr_next = ((prev_inst & 8'h07) << 8) | curr_inst;
-                        $display("{IDECODE: ADDRESS = %u} ",exec_addr_next);
+                        $display("{IDECODE: ADDRESS = %d} ",exec_addr_next);
                     end
                     default: begin
                         $display("OPCODE: %02x\n",prev_inst);
@@ -201,6 +220,7 @@ module idecode (
                                        $display("{IDECODE: RET} ");
                                        exec_ctrl_next = `CPU_OPERATION_RET; 
                                        fetch_en_next = 1'b0;
+                                       ret_next = 1'b0;
                                     end
                                     `HALT: begin
                                        $display("{IDECODE: HALT} ");
@@ -260,7 +280,7 @@ module idecode (
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
                             exec_src0_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            $display("{IDECODE: ADDI: src0_reg = %u, dst_reg = %u} ", exec_src0_reg_next, exec_dst_reg_next);
+                            $display("{IDECODE: ADDI: src0_reg = %d, dst_reg = %d} ", exec_src0_reg_next, exec_dst_reg_next);
                         end
                         else begin
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
@@ -268,7 +288,7 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            $display("{IDECODE: ADD: src0_reg = %u, src1_reg = %u, dst_reg = %u} ",exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
+                            $display("{IDECODE: ADD: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
                         end
                     end
                     `SUB: begin
@@ -277,7 +297,7 @@ module idecode (
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
                             exec_src0_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            $display("{IDECODE: SUBI: src0_reg = %u, dst_reg = %u} ", exec_src0_reg_next, exec_dst_reg_next);
+                            $display("{IDECODE: SUBI: src0_reg = %d, dst_reg = %d} ", exec_src0_reg_next, exec_dst_reg_next);
                         end
                         else begin
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
@@ -285,7 +305,7 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            $display("{IDECODE: SUB: src0_reg = %u, src1_reg = %u, dst_reg = %u} ",exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
+                            $display("{IDECODE: SUB: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
                         end
                     end
                     `AND: begin
@@ -294,7 +314,7 @@ module idecode (
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
                             exec_src0_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            $display("{IDECODE: ANDI: src0_reg = %u, dst_reg = %u} ", exec_src0_reg_next, exec_dst_reg_next);
+                            $display("{IDECODE: ANDI: src0_reg = %d, dst_reg = %d} ", exec_src0_reg_next, exec_dst_reg_next);
                         end
                         else begin
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
@@ -302,7 +322,7 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            $display("{IDECODE: AND: src0_reg = %u, src1_reg = %u, dst_reg = %u} ",exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
+                            $display("{IDECODE: AND: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
                         end
                     end
                     `OR: begin
@@ -311,7 +331,7 @@ module idecode (
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
                             exec_src0_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            $display("{IDECODE: ORI: src0_reg = %u, dst_reg = %u} ", exec_src0_reg_next, exec_dst_reg_next);
+                            $display("{IDECODE: ORI: src0_reg = %d, dst_reg = %d} ", exec_src0_reg_next, exec_dst_reg_next);
                         end
                         else begin
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
@@ -319,7 +339,7 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            $display("{IDECODE: OR: src0_reg = %u, src1_reg = %u, dst_reg = %u} ",exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
+                            $display("{IDECODE: OR: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
                         end
                     end
                     `XOR: begin
@@ -328,7 +348,7 @@ module idecode (
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
                             exec_src0_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            $display("{IDECODE: XORI: src0_reg = %u, dst_reg = %u} ", exec_src0_reg_next, exec_dst_reg_next);
+                            $display("{IDECODE: XORI: src0_reg = %d, dst_reg = %d} ", exec_src0_reg_next, exec_dst_reg_next);
                         end
                         else begin
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
@@ -336,21 +356,21 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            $display("{IDECODE: XOR: src0_reg = %u, src1_reg = %u, dst_reg = %u} ",exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
+                            $display("{IDECODE: XOR: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
                         end
                     end
                     `LD: begin
                         exec_ctrl_next = `MEM_OPERATION_RD;
                         exec_dst_reg_next = `GET_LD_ST_REG_PTR(curr_inst);
                         imm_mode_next = 1'b1;
-                        $display("{IDECODE: LOAD reg[%u]} ", exec_dst_reg_next);
+                        $display("{IDECODE: LOAD reg[%d]} ", exec_dst_reg_next);
                     end
                     `ST: begin
                         exec_ctrl_next = `MEM_OPERATION_WR;
                         exec_src0_reg_next = `GET_LD_ST_REG_PTR(curr_inst);
                         exec_src0_reg_rd_en_next = 1'b1;
                         imm_mode_next = 1'b1;
-                        $display("{IDECODE: STORE reg[%u]} ", exec_dst_reg_next);
+                        $display("{IDECODE: STORE reg[%d]} ", exec_dst_reg_next);
                     end
                 endcase
                 

@@ -3,9 +3,10 @@
 * Description   : execute unit
 * Organization  : NONE 
 * Creation Date : 07-03-2020
-* Last Modified : Tuesday 23 June 2020 03:03:36 PM IST
+* Last Modified : Sunday 03 January 2021 12:02:25 AM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
+`timescale 1ns/1ps
 
 module execute(
     clk,            //<i

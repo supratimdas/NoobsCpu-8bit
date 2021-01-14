@@ -3,9 +3,11 @@
 * Description   :
 * Organization  : NONE 
 * Creation Date : 10-09-2019
-* Last Modified : Friday 19 June 2020 07:34:12 PM IST
+* Last Modified : Thursday 14 January 2021 09:47:03 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com
 ************************************************************/ 
+`timescale 1ns/1ps
+
 `define INIT            0
 `define CPU_RUN         1
 `define CPU_HALT        2
@@ -15,8 +17,8 @@
 module cpu_control (
     clk,                    //<i
     reset_,                 //<i
-    decode2cpu_ctrl_cmd,    //<i    soft_rst, halted, exec_en, fetch_en
-    cbr_status,             //<i    call, branch, return
+    decode2cpu_ctrl_cmd,    //<i    call, branch, ret, soft_rst, halted, exec_en, fetch_en
+    cbr_status,             //>o    call, branch, return
 
     ifetch_en,              //>o
     execute_en,             //>o
@@ -26,8 +28,8 @@ module cpu_control (
 );
     input               clk;
     input               reset_;
-    input [3:0]         decode2cpu_ctrl_cmd;
-    input [2:0]         cbr_status;
+    input [6:0]         decode2cpu_ctrl_cmd;
+    output [2:0]        cbr_status;
 
     output              ifetch_en;
     output              execute_en;
@@ -49,9 +51,9 @@ module cpu_control (
     wire branch;
     wire ret;
 
-    assign {soft_rst, halted, exec_en, fetch_en} = decode2cpu_ctrl_cmd;
+    assign {call, branch, ret, soft_rst, halted, exec_en, fetch_en} = decode2cpu_ctrl_cmd;
 
-    assign {call, branch, ret} =  cbr_status;
+    assign cbr_status = {call, branch, ret};
 
     assign ifetch_en = fetch_en && (cpu_state != `CPU_STACK_OP); 
     

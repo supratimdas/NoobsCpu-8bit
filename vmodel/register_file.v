@@ -3,9 +3,10 @@
 * Description   : this is the register file model
 * Organization  : NONE 
 * Creation Date : 01-09-2019
-* Last Modified : Friday 19 June 2020 06:37:57 PM IST
+* Last Modified : Sunday 03 January 2021 12:03:04 AM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
+`timescale 1ns/1ps
 
 //Short summary
 //This is a simple register file with 2 read ports

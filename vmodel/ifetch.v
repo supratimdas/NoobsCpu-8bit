@@ -3,9 +3,10 @@
 * Description   : instruction fetch unit
 * Organization  : NONE 
 * Creation Date : 11-05-2019
-* Last Modified : Tuesday 23 June 2020 02:06:45 PM IST
+* Last Modified : Thursday 14 January 2021 10:38:55 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
+`timescale 1ns/1ps
 
 //Short summary:
 //this module implements the instruction fetch logic.
@@ -56,7 +57,7 @@ module ifetch(
 
     assign next_addr = PC + 1'b1; 
     assign pc_addr_next = (ifetch_en) ? ((branch) ? tgt_addr : next_addr) : PC;
-    assign inst_addr = pc_addr_next;    //address for inst mem
+    assign inst_addr = PC;    //address for inst mem
 
     //registering instruction from instruction mem
     always @(posedge clk)   begin

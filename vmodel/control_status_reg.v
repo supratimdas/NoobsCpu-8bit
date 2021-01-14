@@ -3,9 +3,10 @@
 * Description   : this implements the control & status reg
 * Organization  : NONE 
 * Creation Date : 01-09-2019
-* Last Modified : Friday 19 June 2020 06:37:57 PM IST
+* Last Modified : Sunday 03 January 2021 12:02:09 AM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
+`timescale 1ns/1ps
 
 /****************************STATUS_REGISTER BIT MAP*******************************
  *|    7    |    6    |    5    |    4    |    3    |    2    |    1    |    0    |
