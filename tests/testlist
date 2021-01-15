@@ -1,3 +1,5 @@
 ##this is a testlist, with a bunch of assembly code trying to exercise various scenarios.
 #test-name, asm file, description
 test_load_store, test_load_store.asm, "basic single load from memory followed by single store in memory"
+test_add, test_add.asm, "load 2 data from memory add them and store to a destination memory location"
+fibonacci, fibonacci.asm, "compute the nth fibonacci number"

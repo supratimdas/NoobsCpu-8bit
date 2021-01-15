@@ -68,6 +68,9 @@ while (<ASM>) {
     $line =~ s/\s+/ /g; #replace multi-whitespace with single whitespace
     $line_num += 1;
     my $num_ws = () = $line =~ /\s/gi;
+    if($line =~ /:/) { ## indicates that it has a label
+        $num_ws=$num_ws-1;
+    }
     if($num_ws == 2) {
         die "unwanted whitespace in : ${inp_asm_file}:${line_num} ==>$line\n";
     }

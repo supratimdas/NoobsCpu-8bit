@@ -3,7 +3,7 @@
 * Description   : execute unit
 * Organization  : NONE 
 * Creation Date : 07-03-2020
-* Last Modified : Friday 15 January 2021 03:00:21 PM IST
+* Last Modified : Friday 15 January 2021 10:07:18 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -98,40 +98,40 @@ module execute(
         reg_wr_sel  = dst_reg;
         case(exec_ctrl_1D[3:0])
             `EXEC_NOP : begin
-                $display("{EXEC_NOP:} ");
+                if(`DEBUG_PRINT) $display("{EXEC_NOP:} ");
             end
             `ALU_OPERATION_ADD : begin
-                $display("{ALU_OPERATION_ADD:} ");
+                if(`DEBUG_PRINT) $display("{ALU_OPERATION_ADD:} ");
                 reg_wr_data = src0_data + src1_data;
                 reg_wr_en = 1;
             end
             `ALU_OPERATION_SUB : begin
-                $display("{ALU_OPERATION_SUB:} ");
+                if(`DEBUG_PRINT) $display("{ALU_OPERATION_SUB:} ");
                 reg_wr_data = src0_data - src1_data;
                 reg_wr_en = 1;
             end
             `ALU_OPERATION_OR : begin
-                $display("{ALU_OPERATION_OR:} ");
+                if(`DEBUG_PRINT) $display("{ALU_OPERATION_OR:} ");
                 reg_wr_data = src0_data | src1_data;
                 reg_wr_en = 1;
             end
             `ALU_OPERATION_AND : begin
-                $display("{ALU_OPERATION_AND:} ");
+                if(`DEBUG_PRINT) $display("{ALU_OPERATION_AND:} ");
                 reg_wr_data = src0_data & src1_data;
                 reg_wr_en = 1;
             end
             `ALU_OPERATION_XOR : begin
-                $display("{ALU_OPERATION_XOR:} ");
+                if(`DEBUG_PRINT) $display("{ALU_OPERATION_XOR:} ");
                 reg_wr_data = src0_data ^ src1_data;
                 reg_wr_en = 1;
             end
             `MEM_OPERATION_RD : begin
-                $display("{MEM_OPERATION_RD:} ");
+                if(`DEBUG_PRINT) $display("{MEM_OPERATION_RD:} ");
                 reg_wr_data = d_mem_data_in;
                 reg_wr_en = 1;
             end
             `MEM_OPERATION_WR : begin
-                $display("{MEM_OPERATION_WR:} ");
+                if(`DEBUG_PRINT) $display("{MEM_OPERATION_WR:} ");
             end
             `CPU_OPERATION_JMP : begin
             end

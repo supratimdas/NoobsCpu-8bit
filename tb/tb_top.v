@@ -2,7 +2,7 @@
 * File Name     : tb_top.v
 * Organization  : NONE
 * Creation Date : 02-01-2021
-* Last Modified : Friday 15 January 2021 09:20:53 PM IST
+* Last Modified : Friday 15 January 2021 10:08:37 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 
@@ -86,7 +86,7 @@ module tb_top;
         //test end
         wait(cycle_count == `SIM_DURATION);
         sim_done = 1;
-        $display("***Test End after %d clock cycles***",cycle_count);
+        if(`DEBUG_PRINT) $display("***Test End after %d clock cycles***",cycle_count);
 
 
         //read final contents of data memory and dump to a file
@@ -98,7 +98,7 @@ module tb_top;
         end
 
         wait(m_dump_addr == `MAX_MEM_LIMIT); 
-        $display("data memory dumped in %s", `DATA_MEM_OUTPUT_FILE);
+        if(`DEBUG_PRINT) $display("data memory dumped in %s", `DATA_MEM_OUTPUT_FILE);
 
         //close file handles
         $fclose(data_mem_input_file);
@@ -110,7 +110,7 @@ module tb_top;
     //clocks
     always begin
         #100
-        $display("Starting Clocks\n");
+        if(`DEBUG_PRINT) $display("Starting Clocks\n");
         forever begin
             #50 clk = ~clk;
             if(clk == 1)
@@ -138,7 +138,7 @@ module tb_top;
 
         if(system_ready && !$feof(data_mem_input_file)) begin
             i=$fscanf(data_mem_input_file,"%x", m_data_in);
-            $display("data_memory_programming_sequence: cycle = %d, addr = %x, data = %x", cycle_count, m_addr_in, m_data_in);
+            if(`DEBUG_PRINT) $display("data_memory_programming_sequence: cycle = %d, addr = %x, data = %x", cycle_count, m_addr_in, m_data_in);
             data_memory_loaded <= 0;
             m_addr_in <= m_addr_in + d_mem_prog_started;
             d_mem_prog_started <= 1;
@@ -160,7 +160,7 @@ module tb_top;
 
         if(system_ready && !$feof(inst_mem_input_file)) begin
             i=$fscanf(inst_mem_input_file,"%x", i_data_in);
-            $display("inst_memory_programming_sequence: cycle = %d, addr = %x, data = %x", cycle_count, i_addr_in, i_data_in);
+            if(`DEBUG_PRINT) $display("inst_memory_programming_sequence: cycle = %d, addr = %x, data = %x", cycle_count, i_addr_in, i_data_in);
             inst_memory_loaded <= 0;
             i_addr_in <= i_addr_in + i_mem_prog_started;
             i_mem_prog_started <= 1'b1;
