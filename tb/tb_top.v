@@ -2,15 +2,17 @@
 * File Name     : tb_top.v
 * Organization  : NONE
 * Creation Date : 02-01-2021
-* Last Modified : Friday 15 January 2021 03:52:20 PM IST
+* Last Modified : Friday 15 January 2021 04:04:18 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 
 /*=============Description======================
- *
- *
- *
- *
+ * basic verilog based testbench
+ * - generates clocks/reset
+ * - instances cpu_dut, and connects with imem/dmem
+ * - reads assembled machine code, programs imem.dmem
+ * - cpu processes data
+ * - dumps out the final contents of dmem to a file
  * ============================================*/
 `timescale 1ns/1ps
 
