@@ -3,7 +3,7 @@
 * Description   : toplevel file
 * Organization  : NONE 
 * Creation Date : 05-03-2020
-* Last Modified : Thursday 14 January 2021 09:50:12 PM IST
+* Last Modified : Friday 15 January 2021 02:52:37 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -23,11 +23,12 @@ module noobs_cpu (
     i_data,         //<i inst_mem_data
     i_addr,         //>o inst_mem_address
 
-    m_data,         //<io>  data_mem_data
-    m_addr,         //>o    data_mem_addr
-    m_rd,           //>o    data_mem_rd enable
-    m_wr,           //>o    data_mem_wr enable
-    m_en            //>     data_mem en
+    m_wr_data,      //>o  data_mem_data wr_data
+    m_rd_data,      //<i  data_mem_data rd_data
+    m_addr,         //>o  data_mem_addr
+    m_rd,           //>o  data_mem_rd enable
+    m_wr,           //>o  data_mem_wr enable
+    m_en            //>   data_mem en
 );
 
     //IOs
@@ -37,7 +38,8 @@ module noobs_cpu (
     input [7:0]     i_data;
     output [11:0]   i_addr;
 
-    inout [7:0]     m_data;
+    input [7:0]     m_rd_data;
+    output [7:0]    m_wr_data;
     output [11:0]   m_addr;
 
     output          m_rd;
@@ -127,6 +129,7 @@ module noobs_cpu (
     );
 
 
+    //instance from register_file.v
     reg_file u_reg_file(
         .clk(clk),              //<i
         //reset_,     //<i
@@ -141,6 +144,7 @@ module noobs_cpu (
         .rd_data_1(rd_data_1)   //>0
     );
 
+    //instance from execute.v
     execute u_execute(
         .clk(clk),                  //<i
         .reset_(reset_),            //<i
@@ -158,8 +162,8 @@ module noobs_cpu (
         .exec_ctrl(exec_ctrl),      //<i
         .dst_addr(dst_addr),        //<i
         .d_mem_addr(m_addr),        //>o
-        .d_mem_data_in(m_data),     //<io>
-        .d_mem_data_out(m_data),    //<io>
+        .d_mem_data_in(m_rd_data),  //<i
+        .d_mem_data_out(m_wr_data), //>o
         .d_mem_en(m_en),            //>o
         .d_mem_rd(m_rd),            //>o
         .d_mem_wr(m_wr)             //>o

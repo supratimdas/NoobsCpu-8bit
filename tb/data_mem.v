@@ -2,7 +2,7 @@
 * File Name     : data_mem.v
 * Organization  : NONE
 * Creation Date : 02-01-2021
-* Last Modified : Thursday 14 January 2021 10:36:32 PM IST
+* Last Modified : Friday 15 January 2021 02:00:41 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps

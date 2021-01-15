@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use warnings;
 use strict;
+use Getopt::Long qw(GetOptions);
 
 #a very basic lookup table based assembler
 my %OP_CODE_HASH;
@@ -47,17 +48,29 @@ my @code_mem;
 my $data_index = 0;
 my $code_index = 0;
 
+my $inp_asm_file = "test.asm";
+my $args = $#ARGV + 1;
+
+if(($#ARGV + 1) == 1) {
+    $inp_asm_file = $ARGV[0];
+}
 ###########PASS-1: resolve labels/addresses#####################
-open(ASM, "<test.asm") or die "Unable to open file test.asm, $!";
+open(ASM, "<${inp_asm_file}") or die "Unable to open file ${inp_asm_file}, $!";
 
 $data_index = 0;
 $code_index = 0;
 
+my $line_num = 0;
 while (<ASM>) {
     my $line = $_;
     $line =~ s/\n//g;   #remove newline
     $line =~ s/^\s+//g; #remove leading whitespace
     $line =~ s/\s+/ /g; #replace multi-whitespace with single whitespace
+    $line_num += 1;
+    my $num_ws = () = $line =~ /\s/gi;
+    if($num_ws == 2) {
+        die "unwanted whitespace in : ${inp_asm_file}:${line_num} ==>$line\n";
+    }
     if($line =~ /data/) {       #entry to data section
         $data_section = 1;
         $code_section = 0;
@@ -133,7 +146,7 @@ close(ASM);
 
 
 ###############PASS-2 machine code translation################
-open(ASM, "<test.asm") or die "Unable to open file test.asm, $!";
+open(ASM, "<${inp_asm_file}") or die "Unable to open file ${inp_asm_file}, $!";
 
 $data_index = 0;
 $code_index = 0;

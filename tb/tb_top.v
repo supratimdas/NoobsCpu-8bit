@@ -2,7 +2,7 @@
 * File Name     : tb_top.v
 * Organization  : NONE
 * Creation Date : 02-01-2021
-* Last Modified : Thursday 14 January 2021 11:12:12 PM IST
+* Last Modified : Friday 15 January 2021 03:52:20 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 
@@ -32,6 +32,7 @@
 `define SIM_DURATION 1000
 `define DATA_MEM_INPUT_FILE "data.txt"
 `define INST_MEM_INPUT_FILE "code.txt"
+`define DATA_MEM_OUTPUT_FILE "data_out.txt"
 
 module tb_top;
     reg clk;
@@ -39,6 +40,7 @@ module tb_top;
     reg system_ready;
     reg data_memory_loaded;
     reg inst_memory_loaded;
+    reg sim_done;
 
 
     integer cycle_count;
@@ -61,6 +63,7 @@ module tb_top;
         inst_memory_loaded = 0;
         reset_ = 1'bz;
         cycle_count = 0;
+        sim_done = 0;
 
         //open data memory input File
         data_mem_input_file = $fopenr(`DATA_MEM_INPUT_FILE);
@@ -79,12 +82,25 @@ module tb_top;
 
         //test end
         wait(cycle_count == `SIM_DURATION);
+        sim_done = 1;
         $display("***Test End after %d clock cycles***",cycle_count);
+
+
+        //read final contents of data memory and dump to a file
+        //open data memory output file for writing
+        data_mem_output_file = $fopenw(`DATA_MEM_OUTPUT_FILE);
+        if(data_mem_input_file == 0) begin
+           $error("unable to create file: %s", `DATA_MEM_OUTPUT_FILE); 
+           $finish;
+        end
+
+        wait(m_dump_addr == 12'hfff); 
+        $display("data memory dumped in %s", `DATA_MEM_OUTPUT_FILE);
 
         //close file handles
         $fclose(data_mem_input_file);
         $fclose(inst_mem_input_file);
-
+        $fclose(data_mem_output_file);
         $finish;
     end
 
@@ -151,6 +167,21 @@ module tb_top;
         end
     end
 
+
+    //read data memory after simulation is done
+    reg [11:0] m_dump_addr;
+    always @(posedge clk) begin
+        if(!reset_) begin
+            m_dump_addr[11:0] <= 12'd8;
+        end
+        else begin
+            if(m_dump_addr[11:0] <= 12'hfff) begin
+                m_dump_addr[11:0] <= m_dump_addr + sim_done;
+                $fdisplay(data_mem_output_file,"%02h",m_data);
+            end
+        end
+    end
+
     /********************************************************************************/
 
     //integration of memory with cpu
@@ -161,18 +192,21 @@ module tb_top;
     wire        m_wr;
     wire        m_en;
 
-    wire [7:0]  cpu_m_data;
+    wire [7:0]  cpu_m_rd_data;
+    wire [7:0]  cpu_m_wr_data;
     wire [11:0] cpu_m_addr;
     wire        cpu_m_rd;
     wire        cpu_m_wr;
     wire        cpu_m_en;
 
 
-    assign m_data = data_memory_loaded ? cpu_m_data : m_data_in;
-    assign m_addr = data_memory_loaded ? cpu_m_addr : m_addr_in; 
-    assign m_rd   = data_memory_loaded ? cpu_m_rd   : 1'b0;
-    assign m_wr   = data_memory_loaded ? cpu_m_wr   : 1'b1;
-    assign m_en   = data_memory_loaded ? cpu_m_en   : 1'b1;  
+    assign m_data = data_memory_loaded ? (sim_done ? 8'bzzzz_zzzz : ((cpu_m_wr & cpu_m_en) ? cpu_m_wr_data : 8'bzzzz_zzzz)) : m_data_in;
+    assign m_addr = data_memory_loaded ? (sim_done ? m_dump_addr : cpu_m_addr) : (m_addr_in + 8); //1st 8 addresses are special purpose 
+    assign m_rd   = data_memory_loaded ? (sim_done ? 1'b1 : cpu_m_rd)   : 1'b0;
+    assign m_wr   = data_memory_loaded ? (sim_done ? 1'b0 : cpu_m_wr)   : 1'b1;
+    assign m_en   = data_memory_loaded ? (sim_done ? 1'b1 : cpu_m_en)   : 1'b1;  
+
+    assign cpu_m_rd_data = m_data;
 
 
     wire [7:0]  i_data;
@@ -212,23 +246,25 @@ module tb_top;
     assign cpu_reset_ = cool_of_counter[5];
 
     /****************system modules****************/
+    wire dut_clk;
+    assign dut_clk = clk & ~sim_done;
 
     //data memory instance
 
     data_mem u_data_mem (
-                            .clk(clk),
+                            .clk(dut_clk),
                             .data(m_data),
                             .addr(m_addr),
                             .rd(m_rd),
                             .wr(m_wr),
-                            .en(m_en)
+                            .en(m_en|system_ready)
                         );
 
 
 
     //program memory instance
     data_mem u_inst_mem (
-                            .clk(clk),
+                            .clk(dut_clk),
                             .data(i_data),
                             .addr(i_addr),
                             .rd(i_rd),
@@ -239,11 +275,12 @@ module tb_top;
 
     //noobsCPU (actual DUT) instance
     noobs_cpu u_cpu_dut (
-                            .clk(clk),
+                            .clk(dut_clk),
                             .reset_(cpu_reset_),
                             .i_data(cpu_i_data),
                             .i_addr(cpu_i_addr),
-                            .m_data(cpu_m_data),
+                            .m_rd_data(cpu_m_rd_data),
+                            .m_wr_data(cpu_m_wr_data),
                             .m_addr(cpu_m_addr),
                             .m_rd(cpu_m_rd),
                             .m_wr(cpu_m_wr),

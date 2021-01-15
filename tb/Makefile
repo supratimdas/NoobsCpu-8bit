@@ -11,7 +11,7 @@ compile:
 	iverilog $(COMPILER_OPTS) $(TB_FILES) -s $(TB_TOP) -o vsim.out
 
 run:
-	cp ../utils/*.txt ./
+	cp tests/*.txt ./
 	./vsim.out	
 
 waves:

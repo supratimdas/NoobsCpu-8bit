@@ -3,7 +3,7 @@
 * Description   : execute unit
 * Organization  : NONE 
 * Creation Date : 07-03-2020
-* Last Modified : Sunday 03 January 2021 12:02:25 AM IST
+* Last Modified : Friday 15 January 2021 03:00:21 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -127,6 +127,8 @@ module execute(
             end
             `MEM_OPERATION_RD : begin
                 $display("{MEM_OPERATION_RD:} ");
+                reg_wr_data = d_mem_data_in;
+                reg_wr_en = 1;
             end
             `MEM_OPERATION_WR : begin
                 $display("{MEM_OPERATION_WR:} ");
