@@ -2,7 +2,7 @@
 * File Name     : tb_top.v
 * Organization  : NONE
 * Creation Date : 02-01-2021
-* Last Modified : Friday 15 January 2021 04:04:18 PM IST
+* Last Modified : Friday 15 January 2021 09:20:53 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 
@@ -29,6 +29,7 @@
 `include "data_mem.v"
 
 
+`define MAX_MEM_LIMIT 12'd2048
 
 `define RESET_ASSERT_DURATION 50
 `define SIM_DURATION 1000
@@ -96,7 +97,7 @@ module tb_top;
            $finish;
         end
 
-        wait(m_dump_addr == 12'hfff); 
+        wait(m_dump_addr == `MAX_MEM_LIMIT); 
         $display("data memory dumped in %s", `DATA_MEM_OUTPUT_FILE);
 
         //close file handles
@@ -172,14 +173,22 @@ module tb_top;
 
     //read data memory after simulation is done
     reg [11:0] m_dump_addr;
+    reg [7:0] m_dump_data_no_x; //for filtering out x to 0
     always @(posedge clk) begin
         if(!reset_) begin
             m_dump_addr[11:0] <= 12'd8;
         end
         else begin
-            if(m_dump_addr[11:0] <= 12'hfff) begin
+            if(m_dump_addr[11:0] <= `MAX_MEM_LIMIT) begin
                 m_dump_addr[11:0] <= m_dump_addr + sim_done;
-                $fdisplay(data_mem_output_file,"%02h",m_data);
+                //while dumping to output file, filter xs with 0s
+                if(m_data === 8'bxxxx_xxxx) begin
+                    m_dump_data_no_x = 8'd0;
+                end
+                else begin
+                    m_dump_data_no_x = m_data;
+                end
+                $fdisplay(data_mem_output_file,"%02h",m_dump_data_no_x);
             end
         end
     end

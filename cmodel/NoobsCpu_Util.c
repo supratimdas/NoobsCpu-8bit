@@ -3,7 +3,7 @@
 * Description   : utilities code for the NoobsCpu ISA
 * Organization  : NONE 
 * Creation Date : 25-03-2019
-* Last Modified : Friday 15 January 2021 08:05:31 PM IST
+* Last Modified : Friday 15 January 2021 09:10:30 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 
@@ -129,7 +129,7 @@ void store_data(){
         exit(1);
     }
     for(data_buff_ptr=8; data_buff_ptr < DATA_MEM_SIZE; data_buff_ptr++) {
-        fprintf(data_file,"%hhx\n", data_mem[data_buff_ptr]);
+        fprintf(data_file,"%02x\n", data_mem[data_buff_ptr]);
     }
     fclose(data_file);
 
