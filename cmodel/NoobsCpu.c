@@ -3,7 +3,7 @@
 * Description   : C-model for the NoobsCpu ISA
 * Organization  : NONE 
 * Creation Date : 15-03-2019
-* Last Modified : Friday 19 June 2020 08:31:01 PM IST
+* Last Modified : Friday 15 January 2021 07:46:40 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 #include "NoobsCpu_Util.h"
@@ -460,7 +460,7 @@ int main(int argc, char** argv){
     printf("\nExecution Halted at cycle : %05d. PC: %04d",cycle_counter,pc);
 
     store_data();
-    printf("\nfinal_memory dumped in noobs_data_result.txt\n");
+    printf("\nfinal_memory dumped in data_out.txt\n");
 
     return 0;
 }

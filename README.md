@@ -14,8 +14,11 @@ NoobsCpu-8bit/
     |
     |---vmodel  : verilog RTL for the processor.
     |
+    |---tb      : verilog based testbench
     |
-    |---utils   : A simple 2-pass assembler written in perl for the NoobsCpu-ISA
+    |---utils   : A simple 2-pass assembler written in perl for the NoobsCpu-ISA, example codes
+    |
+    |---tests   : collection of tests, and scripts to run them on cmodel and RTL
 
 /*Notes*/
 3/25/2019: 
@@ -28,4 +31,8 @@ A simple 2 pass assembler written in perl for the CPU.
 
 1/14/2021:
 basic tb infra, and cleanup
+
+1/15/2021:
+setup of test running infra
+1st test up, basic load from memory, store to memory
 </pre>

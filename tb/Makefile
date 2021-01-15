@@ -10,8 +10,8 @@ COMPILER_OPTS := -Wall -v  -I../vmodel
 compile:
 	iverilog $(COMPILER_OPTS) $(TB_FILES) -s $(TB_TOP) -o vsim.out
 
-run:
-	cp tests/*.txt ./
+run: compile
+	cp ../tests/*.txt ./
 	./vsim.out	
 
 waves:

@@ -2,9 +2,9 @@
 make clean && make
 
 //description of files
-noobs_inst.txt => machine code in ASCII hex (output of assembler)
-noobs_data.txt => data memory in ASCII hex (output of assembler)
-noobs_data_result.txt => this contains the memory dump, after the functional model completes execution
+code.txt => machine code in ASCII hex (output of assembler)
+data.txt => data memory in ASCII hex (output of assembler)
+data_out.txt => this contains the memory dump, after the functional model completes execution
 
 
 //To enable Debug prints:

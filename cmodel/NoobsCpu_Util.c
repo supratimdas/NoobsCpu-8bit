@@ -3,7 +3,7 @@
 * Description   : utilities code for the NoobsCpu ISA
 * Organization  : NONE 
 * Creation Date : 25-03-2019
-* Last Modified : Tuesday 26 March 2019 08:57:51 PM IST
+* Last Modified : Friday 15 January 2021 08:05:31 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 
@@ -77,9 +77,9 @@ void debug_printf(const char * format, ... ) {
 void load_instructions(){
     uint16_t inst_buff_ptr = 0;
     FILE *inst_file = NULL;
-    inst_file = fopen("noobs_inst.txt", "r");
+    inst_file = fopen("code.txt", "r");
     if(inst_file == NULL) {
-        fprintf(stderr, "FATAL: compiled executable: noobs_inst.txt not found.\n");
+        fprintf(stderr, "FATAL: compiled executable: code.txt not found.\n");
         exit(1);
     }
     while(!feof(inst_file)) {
@@ -100,9 +100,9 @@ void load_instructions(){
 void load_data(){
     uint16_t data_buff_ptr = 8;
     FILE *data_file = NULL;
-    data_file = fopen("noobs_data.txt", "r");
+    data_file = fopen("data.txt", "r");
     if(data_file == NULL) {
-        fprintf(stderr, "FATAL: compiled executable: noobs_data.txt not found.\n");
+        fprintf(stderr, "FATAL: compiled executable: data.txt not found.\n");
         exit(1);
     }
     while(!feof(data_file)) {
@@ -123,9 +123,9 @@ void load_data(){
 void store_data(){
     uint16_t data_buff_ptr = 8;
     FILE *data_file = NULL;
-    data_file = fopen("noobs_data_result.txt", "w");
+    data_file = fopen("data_out.txt", "w");
     if(data_file == NULL) {
-        fprintf(stderr, "FATAL: unable to create file noobs_data_result.txt.\n");
+        fprintf(stderr, "FATAL: unable to create file data_out.txt.\n");
         exit(1);
     }
     for(data_buff_ptr=8; data_buff_ptr < DATA_MEM_SIZE; data_buff_ptr++) {

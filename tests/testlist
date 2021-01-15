@@ -1,0 +1,3 @@
+##this is a testlist, with a bunch of assembly code trying to exercise various scenarios.
+#test-name, asm file, description
+test_load_store, test_load_store.asm, "basic single load from memory followed by single store in memory"

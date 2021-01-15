@@ -1,0 +1,9 @@
+this directory contains a set of tests for exercising various aspects of the CPU ISA.
+files:
+
+README               : you're looking at it
+Makefile             : basic Makefile to run a single test. make SOURCE=<testname>.asm
+run_tests.sh         : script that goes through the testlist and runs everyone of them
+testlist             : list containing all the tests along with the assembly code that implements it, and a short description
+<testname>.asm       : corresponding to each test, there will be an assembly code. during the test run process this assembly code will be assembled,
+                       and the corresponding hex dump, is run on the cmodel and RTL respectively
