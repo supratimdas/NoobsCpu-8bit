@@ -3,7 +3,7 @@
 * Description   : this is the register file model
 * Organization  : NONE 
 * Creation Date : 01-09-2019
-* Last Modified : Sunday 03 January 2021 12:03:04 AM IST
+* Last Modified : Saturday 16 January 2021 08:03:18 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -30,9 +30,9 @@ module reg_file (
     input clk;
     //input reset_;
 
-    input [2:0] rd_sel_0;
-    input [2:0] rd_sel_1;
-    input [2:0] wr_sel;
+    input [1:0] rd_sel_0;
+    input [1:0] rd_sel_1;
+    input [1:0] wr_sel;
     input rd_en_0;
     input rd_en_1;
     input wr_en;
@@ -46,10 +46,6 @@ module reg_file (
     reg [7:0] reg1;
     reg [7:0] reg2;
     reg [7:0] reg3;
-    reg [7:0] reg4;
-    reg [7:0] reg5;
-    reg [7:0] reg6;
-    reg [7:0] reg7;
 
 
     reg [7:0] rd_data_0_next;
@@ -66,10 +62,6 @@ module reg_file (
                 3'd1: rd_data_0_next = reg1;
                 3'd2: rd_data_0_next = reg2;
                 3'd3: rd_data_0_next = reg3;
-                3'd4: rd_data_0_next = reg4;
-                3'd5: rd_data_0_next = reg5;
-                3'd6: rd_data_0_next = reg6;
-                3'd7: rd_data_0_next = reg7;
             endcase
         end
         else begin
@@ -92,10 +84,6 @@ module reg_file (
                 3'd1: rd_data_1_next = reg1;
                 3'd2: rd_data_1_next = reg2;
                 3'd3: rd_data_1_next = reg3;
-                3'd4: rd_data_1_next = reg4;
-                3'd5: rd_data_1_next = reg5;
-                3'd6: rd_data_1_next = reg6;
-                3'd7: rd_data_1_next = reg7;
             endcase
         end
         else begin
@@ -116,10 +104,6 @@ module reg_file (
                 3'd1: reg1 <= wr_data;
                 3'd2: reg2 <= wr_data;
                 3'd3: reg3 <= wr_data;
-                3'd4: reg4 <= wr_data;
-                3'd5: reg5 <= wr_data;
-                3'd6: reg6 <= wr_data;
-                3'd7: reg7 <= wr_data;
             endcase
         end
     end

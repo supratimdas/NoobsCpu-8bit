@@ -27,6 +27,10 @@
 `define CR_SP_INIT_MSB     8'h1c
 `define CR_BCNZ            8'h02
 `define CR_BCZ             8'h01
+
+`define CR_BCNZ_BIT_POS  1  
+`define CR_BCZ_BIT_POS   0 
+
 //sub type of MC_CTRL_USR base operation
 `define MISC    8'h00
 `define USR     8'h01
@@ -60,4 +64,10 @@
 `define SR_NZ               8'h04
 `define SR_Z                8'h08
 `define SR_I_TRP            8'h10
+
+`define SR_OVF_BIT_POS     0 
+`define SR_ST_OVF_BIT_POS  1 
+`define SR_NZ_BIT_POS      2 
+`define SR_Z_BIT_POS       3 
+`define SR_I_TRP_BIT_POS   4 
 `endif

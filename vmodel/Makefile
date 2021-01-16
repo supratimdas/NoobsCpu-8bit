@@ -8,7 +8,7 @@ RTL_FILES += execute.v
 RTL_FILES += noobs_cpu.v
 
 VERILOG_COMPILER := iverilog
-COMPILER_OPTS := -Wall
+COMPILER_OPTS := -Wall -DDEBUG_PRINT=0
 
 .PHONY: compile
 

@@ -19,5 +19,9 @@ exec_vmodel: assemble
 	$(VSIM)
 	mv data_out.txt data_out_vmodel.txt
 
+waves:
+	gtkwave test.vcd
+
+
 clean: 
 	rm *.txt *.vcd

@@ -3,7 +3,7 @@
 * Description   :
 * Organization  : NONE 
 * Creation Date : 10-09-2019
-* Last Modified : Thursday 14 January 2021 09:47:03 PM IST
+* Last Modified : Saturday 16 January 2021 11:43:55 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -18,8 +18,6 @@ module cpu_control (
     clk,                    //<i
     reset_,                 //<i
     decode2cpu_ctrl_cmd,    //<i    call, branch, ret, soft_rst, halted, exec_en, fetch_en
-    cbr_status,             //>o    call, branch, return
-
     ifetch_en,              //>o
     execute_en,             //>o
     idecode_en,             //>o
@@ -29,7 +27,6 @@ module cpu_control (
     input               clk;
     input               reset_;
     input [6:0]         decode2cpu_ctrl_cmd;
-    output [2:0]        cbr_status;
 
     output              ifetch_en;
     output              execute_en;
@@ -52,8 +49,6 @@ module cpu_control (
     wire ret;
 
     assign {call, branch, ret, soft_rst, halted, exec_en, fetch_en} = decode2cpu_ctrl_cmd;
-
-    assign cbr_status = {call, branch, ret};
 
     assign ifetch_en = fetch_en && (cpu_state != `CPU_STACK_OP); 
     

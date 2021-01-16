@@ -3,7 +3,7 @@
 * Description   : toplevel file
 * Organization  : NONE 
 * Creation Date : 05-03-2020
-* Last Modified : Friday 15 January 2021 02:52:37 PM IST
+* Last Modified : Saturday 16 January 2021 11:11:28 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -57,10 +57,8 @@ module noobs_cpu (
     wire [6:0]      decode2cpu_ctrl_cmd;
     wire [3:0]      exec_ctrl;
 
-    wire [2:0]      cbr_status;
-
-    wire [2:0]      rd_sel_0;
-    wire [2:0]      rd_sel_1;
+    wire [1:0]      rd_sel_0;
+    wire [1:0]      rd_sel_1;
 
     wire [7:0]      rd_data_0;
     wire [7:0]      rd_data_1;
@@ -68,9 +66,9 @@ module noobs_cpu (
     wire            rd_en_0;
     wire            rd_en_1;
 
-    wire [2:0]      dst_reg;
+    wire [1:0]      dst_reg;
 
-    wire [2:0]      wr_sel;
+    wire [1:0]      wr_sel;
     wire [7:0]      wr_data;
     wire            wr_en;
 
@@ -79,6 +77,35 @@ module noobs_cpu (
     wire [11:0]     dst_addr;
 
     wire            execute_en;
+    wire [7:0]      sr; //status register
+
+
+`ifdef SYNTHESIS
+   wire [31:0] cycle_counter;
+   wire print_en;
+   assign cycle_counter[31:0] = 32'd0;
+   assign print_en = 0;
+`else
+    reg [31:0]      cycle_counter; //for debug
+    always @(posedge clk) begin
+        if(!reset_) begin
+           cycle_counter <= 32'd0; 
+        end
+        else begin
+           cycle_counter <= cycle_counter + 1'b1;
+        end
+    end
+
+    reg print_en;
+    always @(posedge clk or negedge clk) begin
+        if(!reset_) begin
+            print_en <= 0;
+        end
+
+        if(clk == 1) print_en <= 0;
+        if(clk == 0) print_en <= 1;
+    end
+`endif
 
 
     //submodule instances
@@ -99,6 +126,8 @@ module noobs_cpu (
     //instance from idecode.v
     idecode u_idecode(
         .clk(clk),                                          //<i
+        .cycle_counter(cycle_counter),                      //<i
+        .print_en(print_en),                                //<i
         .reset_(reset_),                                    //<i
         .idecode_en(idecode_en),                            //<i
         .inst_i(inst_o),                                    //<i
@@ -111,7 +140,8 @@ module noobs_cpu (
         .exec_addr(dst_addr),                               //>o
         .exec_imm_val(imm_data),                            //>o
         .exec_imm_val_vld(imm_data_vld),                    //>o
-        .decode2cpu_ctrl_cmd(decode2cpu_ctrl_cmd)           //>o
+        .decode2cpu_ctrl_cmd(decode2cpu_ctrl_cmd),          //>o
+        .sr(sr)                                             //<i
     );
 
 
@@ -120,7 +150,6 @@ module noobs_cpu (
         .clk(clk),                                      //<i
         .reset_(reset_),                                //<i
         .decode2cpu_ctrl_cmd(decode2cpu_ctrl_cmd),      //<i
-        .cbr_status(cbr_status),                        //>o    call, branch, return
         .ifetch_en(ifetch_en),                          //>o
         .execute_en(execute_en),                        //>o
         .idecode_en(idecode_en),                        //>o
@@ -147,6 +176,8 @@ module noobs_cpu (
     //instance from execute.v
     execute u_execute(
         .clk(clk),                  //<i
+        .cycle_counter(cycle_counter), //<i
+        .print_en(print_en),        //<i
         .reset_(reset_),            //<i
         .tgt_addr(tgt_addr),        //>o
         .next_addr(next_addr),      //<i
@@ -166,6 +197,7 @@ module noobs_cpu (
         .d_mem_data_out(m_wr_data), //>o
         .d_mem_en(m_en),            //>o
         .d_mem_rd(m_rd),            //>o
-        .d_mem_wr(m_wr)             //>o
+        .d_mem_wr(m_wr),            //>o
+        .sr(sr)                     //>o
     );
 endmodule

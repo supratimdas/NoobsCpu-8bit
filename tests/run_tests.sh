@@ -2,7 +2,7 @@
 # File Name     : run_tests.sh
 # Organization  : NONE
 # Creation Date : 15-01-2021
-# Last Modified : Friday 15 January 2021 10:31:01 PM IST
+# Last Modified : Sunday 17 January 2021 12:05:42 AM IST
 # Author        : Supratim Das (supratimofficio@gmail.com)
 ###########################################################
 
@@ -59,10 +59,10 @@ do
     $ASSEMBLER $test_asm
     echo "running cmodel..."
     $CMODEL
-    mv data_out.txt data_out_cmodel.txt
+    cp data_out.txt data_out_cmodel.txt
     echo "running vmodel..."
     $VSIM
-    mv data_out.txt data_out_vmodel.txt
+    cp data_out.txt data_out_vmodel.txt
     dif=`diff data_out_cmodel.txt data_out_vmodel.txt | wc -l`
     if [[ $dif -eq 0 ]]
     then

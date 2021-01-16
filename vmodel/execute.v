@@ -3,7 +3,7 @@
 * Description   : execute unit
 * Organization  : NONE 
 * Creation Date : 07-03-2020
-* Last Modified : Friday 15 January 2021 10:07:18 PM IST
+* Last Modified : Sunday 17 January 2021 12:51:04 AM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -11,6 +11,8 @@
 module execute(
     clk,            //<i
     reset_,         //<i
+    cycle_counter,  //<i
+    print_en,       //<i //for enabling prints
 
     tgt_addr,       //>o
     next_addr,      //<i
@@ -32,12 +34,16 @@ module execute(
     d_mem_data_out, //>o
     d_mem_en,       //>o
     d_mem_rd,       //>o
-    d_mem_wr        //>o
+    d_mem_wr,       //>o
+
+    sr              //>o
 );
 
     //IO ports
     input           clk;
     input           reset_;
+    input           print_en;
+    input [31:0]     cycle_counter;
 
     output [11:0]   tgt_addr;
     input [11:0]    next_addr;
@@ -48,10 +54,10 @@ module execute(
     input [7:0]     imm_data;
     input           imm_data_vld;
 
-    input [2:0]     dst_reg;
+    input [1:0]     dst_reg;
 
     output reg [7:0]    reg_wr_data;
-    output reg [2:0]    reg_wr_sel;
+    output reg [1:0]    reg_wr_sel;
     output reg [0:0]    reg_wr_en;
     
     input  [3:0]        exec_ctrl;
@@ -63,20 +69,42 @@ module execute(
     output              d_mem_rd;
     output              d_mem_wr;
 
+    output [7:0]        sr;
+
+
     wire [7:0] src0_data;
     wire [7:0] src1_data;
+
+    reg [7:0] sr;
+    reg [7:0] sr_next;
+
+    /****************************STATUS_REGISTER BIT MAP*******************************
+    *|    7    |    6    |    5    |    4    |    3    |    2    |    1    |    0    |
+    *+---------+---------+---------+---------+---------+---------+---------+---------+
+    *|  RSVD   |  RSVD   |  RSVD   |  I/TRP  |    Z    |   NZ    | ST-OVF  |   OVF   |
+    *+---------+---------+---------+---------+---------+---------+---------+---------+
+    */
+
+    reg z_flag;
+    reg nz_flag;
+    reg ovf_flag;
 
     assign d_mem_addr = dst_addr;
 
     reg [3:0] exec_ctrl_1D; //1 cycle delayed version, since register read/imm value takes 1 cycle
+    reg       execute_en_1D;
 
     //use 1 cycle delayed version of exec_ctrl, 1 cycle is required for register read/read from memory
     always @(posedge clk) begin
         if(!reset_) begin
             exec_ctrl_1D[3:0] <= `EXEC_NOP;
+            sr[7:0]           <= 8'd0;
+            execute_en_1D     <= 1'b0;
         end
         else begin
             exec_ctrl_1D[3:0] <= exec_ctrl;
+            execute_en_1D     <= execute_en;
+            sr[7:0]           <= sr_next[7:0];
         end
     end
 
@@ -96,51 +124,76 @@ module execute(
         reg_wr_data = 8'd0;
         reg_wr_en   = 1'b0;
         reg_wr_sel  = dst_reg;
-        case(exec_ctrl_1D[3:0])
-            `EXEC_NOP : begin
-                if(`DEBUG_PRINT) $display("{EXEC_NOP:} ");
-            end
-            `ALU_OPERATION_ADD : begin
-                if(`DEBUG_PRINT) $display("{ALU_OPERATION_ADD:} ");
-                reg_wr_data = src0_data + src1_data;
-                reg_wr_en = 1;
-            end
-            `ALU_OPERATION_SUB : begin
-                if(`DEBUG_PRINT) $display("{ALU_OPERATION_SUB:} ");
-                reg_wr_data = src0_data - src1_data;
-                reg_wr_en = 1;
-            end
-            `ALU_OPERATION_OR : begin
-                if(`DEBUG_PRINT) $display("{ALU_OPERATION_OR:} ");
-                reg_wr_data = src0_data | src1_data;
-                reg_wr_en = 1;
-            end
-            `ALU_OPERATION_AND : begin
-                if(`DEBUG_PRINT) $display("{ALU_OPERATION_AND:} ");
-                reg_wr_data = src0_data & src1_data;
-                reg_wr_en = 1;
-            end
-            `ALU_OPERATION_XOR : begin
-                if(`DEBUG_PRINT) $display("{ALU_OPERATION_XOR:} ");
-                reg_wr_data = src0_data ^ src1_data;
-                reg_wr_en = 1;
-            end
-            `MEM_OPERATION_RD : begin
-                if(`DEBUG_PRINT) $display("{MEM_OPERATION_RD:} ");
-                reg_wr_data = d_mem_data_in;
-                reg_wr_en = 1;
-            end
-            `MEM_OPERATION_WR : begin
-                if(`DEBUG_PRINT) $display("{MEM_OPERATION_WR:} ");
-            end
-            `CPU_OPERATION_JMP : begin
-            end
-            `CPU_OPERATION_CALL : begin
-            end
-            `CPU_OPERATION_RET : begin
-            end
-            `EXEC_IDLE : begin
-            end
-        endcase
+        z_flag   = 1'b0;
+        nz_flag  = 1'b0;
+        ovf_flag = 1'b0;
+        sr_next = sr;
+        if(execute_en_1D) begin
+            case(exec_ctrl_1D[3:0])
+                `EXEC_NOP : begin
+                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {EXEC_NOP:} ",cycle_counter);
+                end
+                `ALU_OPERATION_ADD : begin
+                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {ALU_OPERATION_ADD:} ", cycle_counter);
+                    {ovf_flag, reg_wr_data} = src0_data + src1_data;
+                    z_flag = (reg_wr_data == 8'd0);
+                    nz_flag = (reg_wr_data != 8'd0);
+                    sr_next = sr | {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
+                    reg_wr_en = 1;
+                end
+                `ALU_OPERATION_SUB : begin
+                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {ALU_OPERATION_SUB:} ", cycle_counter);
+                    {ovf_flag, reg_wr_data} = src0_data - src1_data;
+                    z_flag = (reg_wr_data == 8'd0);
+                    nz_flag = (reg_wr_data != 8'd0);
+                    sr_next = sr | {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
+                    reg_wr_en = 1;
+                end
+                `ALU_OPERATION_OR : begin
+                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {ALU_OPERATION_OR:} ", cycle_counter);
+                    reg_wr_data = src0_data | src1_data;
+                    z_flag = (reg_wr_data == 8'd0);
+                    nz_flag = (reg_wr_data != 8'd0);
+                    sr_next = sr | {4'd0, z_flag, nz_flag, 2'd0};
+                    reg_wr_en = 1;
+                end
+                `ALU_OPERATION_AND : begin
+                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {ALU_OPERATION_AND:} ", cycle_counter);
+                    reg_wr_data = src0_data & src1_data;
+                    z_flag = (reg_wr_data == 8'd0);
+                    nz_flag = (reg_wr_data != 8'd0);
+                    sr_next = sr | {4'd0, z_flag, nz_flag, 2'd0};
+                    reg_wr_en = 1;
+                end
+                `ALU_OPERATION_XOR : begin
+                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {ALU_OPERATION_XOR:} ", cycle_counter);
+                    reg_wr_data = src0_data ^ src1_data;
+                    z_flag = (reg_wr_data == 8'd0);
+                    nz_flag = (reg_wr_data != 8'd0);
+                    sr_next = sr | {4'd0, z_flag, nz_flag, 2'd0};
+                    reg_wr_en = 1;
+                end
+                `MEM_OPERATION_RD : begin
+                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {MEM_OPERATION_RD: reg[%d] <= %x} ",cycle_counter, reg_wr_sel, d_mem_data_in);
+                    reg_wr_data = d_mem_data_in;
+                    reg_wr_en = 1;
+                end
+                `MEM_OPERATION_WR : begin
+                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {MEM_OPERATION_WR: %x => mem[%d] } ",cycle_counter, d_mem_data_out, d_mem_addr);
+                end
+                `CPU_OPERATION_JMP : begin
+                    sr_next = sr | {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
+                end
+                `CPU_OPERATION_CALL : begin
+                    sr_next = sr | {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
+                end
+                `CPU_OPERATION_RET : begin
+                    sr_next = sr | {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
+                end
+                `EXEC_IDLE : begin
+                    sr_next = sr | {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
+                end
+            endcase
+        end
     end
 endmodule
