@@ -3,7 +3,7 @@
 * Description   : C-model for the NoobsCpu ISA
 * Organization  : NONE 
 * Creation Date : 15-03-2019
-* Last Modified : Friday 15 January 2021 07:46:40 PM IST
+* Last Modified : Sunday 17 January 2021 02:28:54 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 #include "NoobsCpu_Util.h"
@@ -290,7 +290,7 @@ void idecode(){
                             break;
                         case USR :
                             //TODO: user extensible operations. Add extra ops if necessary
-                            fprintf(stderr,"FATAL Error: No USR defined OPs defined\n");
+                            fprintf(stderr,"FATAL Error: No USR defined OPs defined. opcode=%0x\n",instruction);
                             exit(1);
                             break;
                         case JMP :

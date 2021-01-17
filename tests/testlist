@@ -2,4 +2,7 @@
 #test-name, asm file, description
 test_load_store, test_load_store.asm, "basic single load from memory followed by single store in memory"
 test_add, test_add.asm, "load 2 data from memory add them and store to a destination memory location"
+test_unconditional_jmp, test_unconditional_jmp.asm, "simple unconditional jump"
+test_conditional_jmpz_false, test_conditional_jmpz_false.asm, "conditional jump if zero, condition evaluates true"
+test_conditional_jmpz_true, test_conditional_jmpz_true.asm, "conditional jump if zero, condition evaluates false"
 #fibonacci, fibonacci.asm, "compute the nth fibonacci number"

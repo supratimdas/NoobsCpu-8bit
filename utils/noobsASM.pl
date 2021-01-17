@@ -66,6 +66,7 @@ while (<ASM>) {
     $line =~ s/\n//g;   #remove newline
     $line =~ s/^\s+//g; #remove leading whitespace
     $line =~ s/\s+/ /g; #replace multi-whitespace with single whitespace
+    $line =~ s/, /,/g; #replace whitespaces after comma (generally indicates args in assembly)
     $line_num += 1;
     my $num_ws = () = $line =~ /\s/gi;
     if($line =~ /:/) { ## indicates that it has a label
@@ -153,12 +154,14 @@ open(ASM, "<${inp_asm_file}") or die "Unable to open file ${inp_asm_file}, $!";
 
 $data_index = 0;
 $code_index = 0;
+$last_branch_condition = 0;
 
 while (<ASM>) {
     my $line = $_;
     $line =~ s/\n//g;   #remove newline
     $line =~ s/^\s+//g; #remove leading whitespace
     $line =~ s/\s+/ /g; #replace multi-whitespace with single whitespace
+    $line =~ s/, /,/g; #replace whitespaces after comma (generally indicates args in assembly)
     
     if($line eq "") { #skip empty lines
         next;
@@ -177,7 +180,7 @@ while (<ASM>) {
         $code_section = 1;
     }else{                      #actual data/code 
         if($data_section){
-            $data_mem[$data_index] = oct($line);
+            $data_mem[$data_index] = to_int($line);
             $data_index++;
         }
 
@@ -191,10 +194,10 @@ while (<ASM>) {
                 die "ERROR: Undefined OPCODE ${OPCODE}\n";
             }
             if($OPCODE =~ /I$/) {   #immediate op
-                my $dst_reg = oct($REGISTER_HASH{$ARGLIST[0]}) << 2;
-                my $src_reg = oct($REGISTER_HASH{$ARGLIST[1]});
+                my $dst_reg = to_int($REGISTER_HASH{$ARGLIST[0]}) << 2;
+                my $src_reg = to_int($REGISTER_HASH{$ARGLIST[1]});
                 $code_mem[$code_index++] = $OP_CODE_HASH{$OPCODE} | $dst_reg | $src_reg;
-                $code_mem[$code_index++] = oct($ARGLIST[2]);
+                $code_mem[$code_index++] = to_int($ARGLIST[2]);
             }elsif($OPCODE =~ /(JMP|CALL|LOAD|STORE)/) {    #address based ops also immediate
                 if($OPCODE =~ /JMPZ/) {
                     if($last_branch_condition!=1) {
@@ -215,18 +218,18 @@ while (<ASM>) {
                 my $address = 0;
                 my $dst_reg = 0;
                 if($OPCODE =~ /(JMP|CALL)/) {
-                    $address = ($ARGLIST[0]  =~ /^\d.*/) ?oct($ARGLIST[0]) : (defined($SYMBOL_TABLE{$ARGLIST[0]}) ? $SYMBOL_TABLE{$ARGLIST[0]} : die("ERROR: Undefined Identifier $ARGLIST[0]"));
+                    $address = ($ARGLIST[0]  =~ /^\d.*/) ?to_int($ARGLIST[0]) : (defined($SYMBOL_TABLE{$ARGLIST[0]}) ? $SYMBOL_TABLE{$ARGLIST[0]} : die("ERROR: Undefined Identifier $ARGLIST[0]"));
                 }else{ #load/store
-                    $dst_reg = (oct($REGISTER_HASH{$ARGLIST[0]}) << 3);
-                    $address = ($ARGLIST[1]  =~ /^\d.*/) ?oct($ARGLIST[1]) : (defined($SYMBOL_TABLE{$ARGLIST[1]}) ? $SYMBOL_TABLE{$ARGLIST[1]} : die("ERROR: Undefined Identifier $ARGLIST[1]"));
+                    $dst_reg = (to_int($REGISTER_HASH{$ARGLIST[0]}) << 3);
+                    $address = ($ARGLIST[1]  =~ /^\d.*/) ?to_int($ARGLIST[1]) : (defined($SYMBOL_TABLE{$ARGLIST[1]}) ? $SYMBOL_TABLE{$ARGLIST[1]} : die("ERROR: Undefined Identifier $ARGLIST[1]"));
                 }
                 my $address_msb = ($address >> 8) & 0x07;
                 my $address_lsb = $address & 0x00ff;
                 $code_mem[$code_index++] = $OP_CODE_HASH{$OPCODE}|$dst_reg|$address_msb;
                 $code_mem[$code_index++] = $address_lsb;
             }elsif($num_args > 1) {
-                my $src_reg0 = oct($REGISTER_HASH{$ARGLIST[0]}) << 2;
-                my $src_reg1 = oct($REGISTER_HASH{$ARGLIST[1]});
+                my $src_reg0 = to_int($REGISTER_HASH{$ARGLIST[0]}) << 2;
+                my $src_reg1 = to_int($REGISTER_HASH{$ARGLIST[1]});
                 $code_mem[$code_index++] = $OP_CODE_HASH{$OPCODE} | $src_reg1 | $src_reg0;
             }else{  #opcodes without any args
                 $code_mem[$code_index++] = $OP_CODE_HASH{$OPCODE};
@@ -250,3 +253,10 @@ foreach my $code (@code_mem) {
     printf CODE "0x%02x\n", $code;
 }
 close(CODE);
+
+sub to_int {
+    my $num = shift;
+    $num =~ s/ //g; #remove any unwanted whitespaces
+    $num = oct($num) if $num =~ /^0/;
+    return $num;
+}

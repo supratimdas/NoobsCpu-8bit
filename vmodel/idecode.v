@@ -3,7 +3,7 @@
 * Description   :
 * Organization  : NONE 
 * Creation Date : 11-05-2019
-* Last Modified : Sunday 17 January 2021 12:49:22 AM IST
+* Last Modified : Sunday 17 January 2021 03:06:25 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -234,7 +234,7 @@ module idecode (
                         if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: ADDRESS = %d} ",cycle_counter, exec_addr_next);
                     end
                     default: begin
-                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: OPCODE: %02x\n",prev_inst);
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: OPCODE: %02x\n",cycle_counter, prev_inst);
                         fatal_err = 1'b1;
                     end
                 endcase
@@ -337,7 +337,7 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SUB: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
+                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SUB: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
                         end
                     end
                     `AND: begin
@@ -354,7 +354,7 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: AND: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
+                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: AND: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
                         end
                     end
                     `OR: begin
@@ -371,7 +371,7 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: OR: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
+                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: OR: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
                         end
                     end
                     `XOR: begin
@@ -388,7 +388,7 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: XOR: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
+                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: XOR: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
                         end
                     end
                     `LD: begin
