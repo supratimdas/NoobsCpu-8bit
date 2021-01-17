@@ -2,8 +2,8 @@
 make clean && make
 
 //description of files
-code.txt => machine code in ASCII hex (output of assembler)
-data.txt => data memory in ASCII hex (output of assembler)
+code.txt => machine code in ASCII hex (output of assembler), copy this file to the working directory from where it will be invoked
+data.txt => data memory in ASCII hex (output of assembler), copy this file to the working directory from where it will be invoked
 data_out.txt => this contains the memory dump, after the functional model completes execution
 
 

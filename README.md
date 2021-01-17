@@ -20,6 +20,16 @@ NoobsCpu-8bit/
     |
     |---tests   : collection of tests, and scripts to run them on cmodel and RTL
 
+
+WHAT's required to run this?
+this is completely based on opensource tools freely available.
+Ensure you have the following installed in your system:
+1. GCC toolchain: the cmodel is written in C. so in order to compile it you need gcc, or some other C compiler.
+2. iverilog: for simulating the RTL, iverilog is used, so you'll need that
+3. GTKWave: GTKWave is a opensource waveform viewer, which can be used to view/debug from vcd wavedumps, the tb produces for each test
+4. perl: the assembler is written in perl, so you'll need that
+5. YOSYS: will be using YOSYS for synthesis
+
 /*Notes*/
 3/25/2019: 
 replaced MUL instruction with SUB.

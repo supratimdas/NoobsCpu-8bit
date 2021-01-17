@@ -1,0 +1,6 @@
+using the assembler is really simple:
+noobsASM.pl <your-prog.asm>
+
+it generates 2 output files:
+- code.txt : a hex dump in human readable format, for the instruction memory
+- data.txt : a hex dump in human readable format, for the data memory

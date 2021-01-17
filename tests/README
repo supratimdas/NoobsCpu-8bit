@@ -7,3 +7,12 @@ run_tests.sh         : script that goes through the testlist and runs everyone o
 testlist             : list containing all the tests along with the assembly code that implements it, and a short description
 <testname>.asm       : corresponding to each test, there will be an assembly code. during the test run process this assembly code will be assembled,
                        and the corresponding hex dump, is run on the cmodel and RTL respectively
+
+
+the run_tests.sh script runs all tests from the testlist, and shows pass/fail stat.
+in order to run a single test do the following:
+1. build cmodel: run make from cmodel dir (use export NOOBS_DEBUG=1 if you are using bash for enabling debug prints from cmodel) 
+2. build tb: run make from tb dir (use DEBUG=1 if you need debug prints from RTL)
+3. run the specific test: make SOURCE=<testname>.asm 
+above command runs the test, and dumps out data_out_cmodel.txt, data_out_vmodel.txt and test.vcd file. In order to debug
+using waves do: make waves
