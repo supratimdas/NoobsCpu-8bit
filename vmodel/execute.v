@@ -3,7 +3,7 @@
 * Description   : execute unit
 * Organization  : NONE 
 * Creation Date : 07-03-2020
-* Last Modified : Sunday 17 January 2021 12:51:04 AM IST
+* Last Modified : Sunday 17 January 2021 08:23:19 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -14,9 +14,6 @@ module execute(
     cycle_counter,  //<i
     print_en,       //<i //for enabling prints
 
-    tgt_addr,       //>o
-    next_addr,      //<i
-    
     execute_en,     //<i
     reg_src0_data,  //<i 
     reg_src1_data,  //<i 
@@ -36,6 +33,8 @@ module execute(
     d_mem_rd,       //>o
     d_mem_wr,       //>o
 
+    pc_branch,      //>o
+
     sr              //>o
 );
 
@@ -44,9 +43,6 @@ module execute(
     input           reset_;
     input           print_en;
     input [31:0]     cycle_counter;
-
-    output [11:0]   tgt_addr;
-    input [11:0]    next_addr;
 
     input           execute_en;
     input [7:0]     reg_src0_data;
@@ -71,6 +67,8 @@ module execute(
 
     output [7:0]        sr;
 
+    output              pc_branch;
+
 
     wire [7:0] src0_data;
     wire [7:0] src1_data;
@@ -93,6 +91,9 @@ module execute(
 
     reg [3:0] exec_ctrl_1D; //1 cycle delayed version, since register read/imm value takes 1 cycle
     reg       execute_en_1D;
+    wire      pc_branch;
+
+    assign pc_branch = (exec_ctrl[3:0] == `CPU_OPERATION_JMP) & execute_en;
 
     //use 1 cycle delayed version of exec_ctrl, 1 cycle is required for register read/read from memory
     always @(posedge clk) begin
@@ -113,9 +114,9 @@ module execute(
     assign src1_data = imm_data_vld ? imm_data : reg_src1_data; //immediate value will also be available in the next cycle since the immediate value is encoded in the next 8 bit of the original instruction
 
     //generate memory access control signals
-    assign d_mem_rd = (exec_ctrl_1D[3:0] == `MEM_OPERATION_RD);
-    assign d_mem_wr = (exec_ctrl_1D[3:0] == `MEM_OPERATION_WR);
-    assign d_mem_en = (d_mem_wr || d_mem_rd);
+    assign d_mem_rd = (exec_ctrl_1D[3:0] == `MEM_OPERATION_RD) & execute_en_1D;
+    assign d_mem_wr = (exec_ctrl_1D[3:0] == `MEM_OPERATION_WR) & execute_en_1D;
+    assign d_mem_en = (d_mem_wr || d_mem_rd) & execute_en_1D;
 
     assign d_mem_data_out[7:0] = src0_data;
 
@@ -138,7 +139,7 @@ module execute(
                     {ovf_flag, reg_wr_data} = src0_data + src1_data;
                     z_flag = (reg_wr_data == 8'd0);
                     nz_flag = (reg_wr_data != 8'd0);
-                    sr_next = sr | {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
+                    sr_next = {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
                     reg_wr_en = 1;
                 end
                 `ALU_OPERATION_SUB : begin
@@ -146,7 +147,7 @@ module execute(
                     {ovf_flag, reg_wr_data} = src0_data - src1_data;
                     z_flag = (reg_wr_data == 8'd0);
                     nz_flag = (reg_wr_data != 8'd0);
-                    sr_next = sr | {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
+                    sr_next = {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
                     reg_wr_en = 1;
                 end
                 `ALU_OPERATION_OR : begin
@@ -154,7 +155,7 @@ module execute(
                     reg_wr_data = src0_data | src1_data;
                     z_flag = (reg_wr_data == 8'd0);
                     nz_flag = (reg_wr_data != 8'd0);
-                    sr_next = sr | {4'd0, z_flag, nz_flag, 2'd0};
+                    sr_next = {4'd0, z_flag, nz_flag, 2'd0};
                     reg_wr_en = 1;
                 end
                 `ALU_OPERATION_AND : begin
@@ -162,7 +163,7 @@ module execute(
                     reg_wr_data = src0_data & src1_data;
                     z_flag = (reg_wr_data == 8'd0);
                     nz_flag = (reg_wr_data != 8'd0);
-                    sr_next = sr | {4'd0, z_flag, nz_flag, 2'd0};
+                    sr_next = {4'd0, z_flag, nz_flag, 2'd0};
                     reg_wr_en = 1;
                 end
                 `ALU_OPERATION_XOR : begin
@@ -170,7 +171,7 @@ module execute(
                     reg_wr_data = src0_data ^ src1_data;
                     z_flag = (reg_wr_data == 8'd0);
                     nz_flag = (reg_wr_data != 8'd0);
-                    sr_next = sr | {4'd0, z_flag, nz_flag, 2'd0};
+                    sr_next = {4'd0, z_flag, nz_flag, 2'd0};
                     reg_wr_en = 1;
                 end
                 `MEM_OPERATION_RD : begin
@@ -182,16 +183,13 @@ module execute(
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {MEM_OPERATION_WR: %x => mem[%d] } ",cycle_counter, d_mem_data_out, d_mem_addr);
                 end
                 `CPU_OPERATION_JMP : begin
-                    sr_next = sr | {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
+                    sr_next = {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
                 end
                 `CPU_OPERATION_CALL : begin
-                    sr_next = sr | {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
+                    sr_next = {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
                 end
                 `CPU_OPERATION_RET : begin
-                    sr_next = sr | {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
-                end
-                `EXEC_IDLE : begin
-                    sr_next = sr | {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
+                    sr_next = {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
                 end
             endcase
         end

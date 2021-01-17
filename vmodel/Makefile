@@ -3,7 +3,6 @@ VLIB := asserts.v
 RTL_FILES := ifetch.v
 RTL_FILES += idecode.v
 RTL_FILES += register_file.v
-RTL_FILES += cpu_control.v
 RTL_FILES += execute.v
 RTL_FILES += noobs_cpu.v
 

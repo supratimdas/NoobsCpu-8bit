@@ -3,7 +3,7 @@
 * Description   : this is the register file model
 * Organization  : NONE 
 * Creation Date : 01-09-2019
-* Last Modified : Saturday 16 January 2021 08:03:18 PM IST
+* Last Modified : Sunday 17 January 2021 05:37:04 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -14,7 +14,7 @@
 
 module reg_file (
     clk ,       //<i
-    //reset_,     //<i
+    reset_,     //<i
     rd_sel_0,   //<i
     rd_en_0,    //<i
     rd_sel_1,   //<i
@@ -28,7 +28,7 @@ module reg_file (
     rd_data_1   //>0
 );
     input clk;
-    //input reset_;
+    input reset_;
 
     input [1:0] rd_sel_0;
     input [1:0] rd_sel_1;
@@ -98,13 +98,21 @@ module reg_file (
 
     //wr_port
     always @(posedge clk) begin
-        if(wr_en) begin
-            casez(wr_sel)
-                3'd0: reg0 <= wr_data;
-                3'd1: reg1 <= wr_data;
-                3'd2: reg2 <= wr_data;
-                3'd3: reg3 <= wr_data;
-            endcase
+        if(!reset_) begin
+            reg0 <= 8'd0;
+            reg1 <= 8'd0;
+            reg2 <= 8'd0;
+            reg3 <= 8'd0;
+        end
+        else begin
+            if(wr_en) begin
+                casez(wr_sel)
+                    3'd0: reg0 <= wr_data;
+                    3'd1: reg1 <= wr_data;
+                    3'd2: reg2 <= wr_data;
+                    3'd3: reg3 <= wr_data;
+                endcase
+            end
         end
     end
 

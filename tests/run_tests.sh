@@ -2,7 +2,7 @@
 # File Name     : run_tests.sh
 # Organization  : NONE
 # Creation Date : 15-01-2021
-# Last Modified : Sunday 17 January 2021 03:15:38 PM IST
+# Last Modified : Sunday 17 January 2021 06:24:22 PM IST
 # Author        : Supratim Das (supratimofficio@gmail.com)
 ###########################################################
 
@@ -14,6 +14,7 @@
 #
 #
 #################################################
+make clean
 TEST_DIR=`pwd`
 PROJ_DIR=`pwd|sed 's/tests//g'`
 echo $PROJ_DIR
@@ -33,13 +34,11 @@ NORMAL='\e[0m'
 
 echo -e "${BOLD}BUILDING CMODEL...${NORMAL}"
 cd $CMODEL_DIR
-make clean
 make
 echo -e "${BOLD}======================================================================= ${NORMAL}"
 
 echo -e "${BOLD}BUILDING TB... ${NORMAL}"
 cd $TB_DIR
-make clean
 make
 echo -e "${BOLD}======================================================================= ${NORMAL}"
 
@@ -53,7 +52,8 @@ do
     test_asm=`echo $line| cut -d ',' -f 2`
     test_desc=`echo $line| cut -d ',' -f 3`
     echo -e "${BOLD}=============Testname-"$testname"================-"$test_desc"-=====================${NORMAL}"
-    make clean
+    rm *.txt
+    rm *.vcd
     touch data_out_cmodel.txt
     touch data_out_vmodel.txt
     $ASSEMBLER $test_asm

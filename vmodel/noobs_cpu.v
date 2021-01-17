@@ -3,7 +3,7 @@
 * Description   : toplevel file
 * Organization  : NONE 
 * Creation Date : 05-03-2020
-* Last Modified : Saturday 16 January 2021 11:11:28 PM IST
+* Last Modified : Sunday 17 January 2021 07:28:34 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -47,14 +47,12 @@ module noobs_cpu (
     output          m_en;
 
     //wires
-    wire            branch;
-    wire            ifetch_en;
+    wire            pc_branch;
     wire [11:0]     tgt_addr;
-    wire [11:0]     next_addr;
     wire [7:0]      inst_o;
 
-    wire            idecode_en;
-    wire [6:0]      decode2cpu_ctrl_cmd;
+    wire            ifetch_en;
+    wire            execute_en;
     wire [3:0]      exec_ctrl;
 
     wire [1:0]      rd_sel_0;
@@ -76,9 +74,9 @@ module noobs_cpu (
     wire            imm_data_vld;
     wire [11:0]     dst_addr;
 
-    wire            execute_en;
     wire [7:0]      sr; //status register
 
+    wire            idecode_en;
 
 `ifdef SYNTHESIS
    wire [31:0] cycle_counter;
@@ -113,12 +111,12 @@ module noobs_cpu (
     ifetch u_ifetch(
         .clk(clk),              //< i
         .reset_(reset_),        //< i
-        .branch(1'b0),          //< i //TODO: implement conditional branching/call
+        .branch(pc_branch),     //< i 
         .ifetch_en(ifetch_en),  //< i
         .inst_i(i_data),        //< i
         .tgt_addr(tgt_addr),    //< i
         .inst_o(inst_o),        //> o
-        .next_addr(next_addr),  //> o
+        .idecode_en(idecode_en),//>o
         .inst_addr(i_addr)      //> o
     );
 
@@ -131,6 +129,7 @@ module noobs_cpu (
         .reset_(reset_),                                    //<i
         .idecode_en(idecode_en),                            //<i
         .inst_i(inst_o),                                    //<i
+        .tgt_addr(tgt_addr),                                //>o
         .exec_ctrl(exec_ctrl),                              //>o
         .exec_src0_reg(rd_sel_0),                           //>o
         .exec_src0_reg_rd_en(rd_en_0),                      //>o
@@ -140,28 +139,16 @@ module noobs_cpu (
         .exec_addr(dst_addr),                               //>o
         .exec_imm_val(imm_data),                            //>o
         .exec_imm_val_vld(imm_data_vld),                    //>o
-        .decode2cpu_ctrl_cmd(decode2cpu_ctrl_cmd),          //>o
+        .decode2ifetch_en(ifetch_en),                       //>o
+        .decode2exec_en(execute_en),                        //>o
         .sr(sr)                                             //<i
-    );
-
-
-    //instance from cpu_control.v
-    cpu_control u_cpu_control(
-        .clk(clk),                                      //<i
-        .reset_(reset_),                                //<i
-        .decode2cpu_ctrl_cmd(decode2cpu_ctrl_cmd),      //<i
-        .ifetch_en(ifetch_en),                          //>o
-        .execute_en(execute_en),                        //>o
-        .idecode_en(idecode_en),                        //>o
-        .pc_reset(),                                    //>o
-        .pc_branch()                                    //>o
     );
 
 
     //instance from register_file.v
     reg_file u_reg_file(
         .clk(clk),              //<i
-        //reset_,     //<i
+        .reset_(reset_),        //<i
         .rd_sel_0(rd_sel_0),    //<i
         .rd_en_0(rd_en_0),      //<i
         .rd_sel_1(rd_sel_1),    //<i
@@ -179,8 +166,6 @@ module noobs_cpu (
         .cycle_counter(cycle_counter), //<i
         .print_en(print_en),        //<i
         .reset_(reset_),            //<i
-        .tgt_addr(tgt_addr),        //>o
-        .next_addr(next_addr),      //<i
         .execute_en(execute_en),    //<i
         .reg_src0_data(rd_data_0),  //<i 
         .reg_src1_data(rd_data_1),  //<i 
@@ -198,6 +183,7 @@ module noobs_cpu (
         .d_mem_en(m_en),            //>o
         .d_mem_rd(m_rd),            //>o
         .d_mem_wr(m_wr),            //>o
+        .pc_branch(pc_branch),      //>o
         .sr(sr)                     //>o
     );
 endmodule

@@ -57,7 +57,6 @@
 `define CPU_OPERATION_JMP   4'h8
 `define CPU_OPERATION_CALL  4'h9
 `define CPU_OPERATION_RET   4'ha
-`define EXEC_IDLE           4'hb
 
 `define SR_OVF              8'h01
 `define SR_ST_OVF           8'h02

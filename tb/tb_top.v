@@ -2,7 +2,7 @@
 * File Name     : tb_top.v
 * Organization  : NONE
 * Creation Date : 02-01-2021
-* Last Modified : Friday 15 January 2021 10:08:37 PM IST
+* Last Modified : Sunday 17 January 2021 06:22:35 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 
@@ -21,7 +21,6 @@
 `include "ifetch.v"
 `include "idecode.v"
 `include "register_file.v"
-`include "cpu_control.v"
 `include "execute.v"
 `include "noobs_cpu.v"
 

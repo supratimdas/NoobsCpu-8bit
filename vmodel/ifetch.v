@@ -3,7 +3,7 @@
 * Description   : instruction fetch unit
 * Organization  : NONE 
 * Creation Date : 11-05-2019
-* Last Modified : Thursday 14 January 2021 10:38:55 PM IST
+* Last Modified : Sunday 17 January 2021 07:38:35 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -20,7 +20,7 @@ module ifetch(
     inst_i,     //< i instruction input from inst_mem
     tgt_addr,   //< i tgt branch addr
     inst_o,     //> o instruction output to decode unit
-    next_addr,  //> o next_addr 
+    idecode_en, //> o ifetch2idecode_en
     inst_addr   //> o addr for instruction memory 
 );
     //IOs
@@ -34,12 +34,14 @@ module ifetch(
     input [11:0]    tgt_addr;
 
     output [7:0]    inst_o;
-    output [11:0]   next_addr;
     output [11:0]   inst_addr;
+
+    output          idecode_en;
     
     //regs
     reg [11:0]  PC;
     reg [7:0]   inst_reg;
+    reg         idecode_en;
 
     //wires
     wire [11:0] pc_addr_next;
@@ -55,17 +57,20 @@ module ifetch(
         end
     end
 
+    wire [11:0] next_addr;
     assign next_addr = PC + 1'b1; 
-    assign pc_addr_next = (ifetch_en) ? ((branch) ? tgt_addr : next_addr) : PC;
-    assign inst_addr = PC;    //address for inst mem
+    assign pc_addr_next = (ifetch_en) ? ((branch) ? (tgt_addr + 1'b1) : next_addr) : PC;
+    assign inst_addr = branch ? tgt_addr : PC;    //address for inst mem
 
     //registering instruction from instruction mem
     always @(posedge clk)   begin
         if(!reset_) begin
             inst_reg[7:0]   <= 8'd0;
+            idecode_en      <= 1'b0;
         end
         else begin
             inst_reg[7:0]   <= inst;
+            idecode_en      <= ifetch_en;
         end
     end
 
