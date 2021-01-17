@@ -3,7 +3,7 @@
 * Description   : execute unit
 * Organization  : NONE 
 * Creation Date : 07-03-2020
-* Last Modified : Sunday 17 January 2021 08:23:19 PM IST
+* Last Modified : Sunday 17 January 2021 09:39:13 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -101,11 +101,13 @@ module execute(
             exec_ctrl_1D[3:0] <= `EXEC_NOP;
             sr[7:0]           <= 8'd0;
             execute_en_1D     <= 1'b0;
+            reg_wr_sel        <= 2'd0;
         end
         else begin
             exec_ctrl_1D[3:0] <= exec_ctrl;
             execute_en_1D     <= execute_en;
             sr[7:0]           <= sr_next[7:0];
+            reg_wr_sel        <= dst_reg;
         end
     end
 
@@ -124,7 +126,6 @@ module execute(
     always @(*) begin
         reg_wr_data = 8'd0;
         reg_wr_en   = 1'b0;
-        reg_wr_sel  = dst_reg;
         z_flag   = 1'b0;
         nz_flag  = 1'b0;
         ovf_flag = 1'b0;
@@ -175,7 +176,7 @@ module execute(
                     reg_wr_en = 1;
                 end
                 `MEM_OPERATION_RD : begin
-                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {MEM_OPERATION_RD: reg[%d] <= %x} ",cycle_counter, reg_wr_sel, d_mem_data_in);
+                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {MEM_OPERATION_RD: reg[%d] <= %x} ",cycle_counter, dst_reg, d_mem_data_in);
                     reg_wr_data = d_mem_data_in;
                     reg_wr_en = 1;
                 end
