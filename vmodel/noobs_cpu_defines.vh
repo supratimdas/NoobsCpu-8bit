@@ -69,4 +69,6 @@
 `define SR_NZ_BIT_POS      2 
 `define SR_Z_BIT_POS       3 
 `define SR_I_TRP_BIT_POS   4 
+
+`define OP_CODE_NOP 8'd0
 `endif

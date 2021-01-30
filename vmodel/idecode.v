@@ -3,7 +3,7 @@
 * Description   :
 * Organization  : NONE 
 * Creation Date : 11-05-2019
-* Last Modified : Sunday 17 January 2021 08:16:03 PM IST
+* Last Modified : Sunday 31 January 2021 12:10:29 AM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -11,26 +11,28 @@
 `include "noobs_cpu_defines.vh"
 
 module idecode (
-    clk,                //<i
-    cycle_counter,      //<i
-    print_en,           //<i
-    reset_,             //<i
-    idecode_en,         //<i
-    inst_i,             //<i    //input from ifetch stage
-    tgt_addr,           //<i 
+    clk,                        //<i
+    cycle_counter,              //<i
+    print_en,                   //<i
+    reset_,                     //<i
+    idecode_en,                 //<i
+    inst_i,                     //<i    //input from ifetch stage
+    tgt_addr,                   //<i 
 
-    exec_ctrl,          //>o    //encoded execute control to execute unit
-    exec_src0_reg,      //>o    //register file rd_sel_0
-    exec_src0_reg_rd_en,//>o    //rd_en_0
-    exec_src1_reg,      //>o    //register file rd_sel_1
-    exec_src1_reg_rd_en,//>o    //rd_en_1
-    exec_dst_reg,       //>o    //register file wr_reg_sel
-    exec_addr,          //>o    //data memory access addr
-    exec_imm_val,       //>o    //immediate value
-    exec_imm_val_vld,   //>o    //immediate value valid
-    decode2ifetch_en,   //>o    //instruction fetch_en
-    decode2exec_en,     //>o    //instruction execute_en
-    sr                  //<i    //status register
+    exec_ctrl,                  //>o    //encoded execute control to execute unit
+    exec_src0_reg,              //>o    //register file rd_sel_0
+    exec_src0_reg_rd_en,        //>o    //rd_en_0
+    exec_src1_reg,              //>o    //register file rd_sel_1
+    exec_src1_reg_rd_en,        //>o    //rd_en_1
+    exec_dst_reg,               //>o    //register file wr_reg_sel
+    exec_addr,                  //>o    //data memory access addr
+    exec_imm_val,               //>o    //immediate value
+    exec_imm_val_vld,           //>o    //immediate value valid
+    decode2ifetch_en,           //>o    //instruction fetch_en
+    decode2exec_en,             //>o    //instruction execute_en
+    decode2exec_latch_ret_addr, //>o    //output to immediately latch the return address in temporary flop
+    sr,                         //<i    //status register
+    sp_msb_10_8,                //>o    //stack pointer msb 10-8
 );
     //IOs
     input            clk;
@@ -51,11 +53,14 @@ module idecode (
     output reg [1:0]    exec_dst_reg;
     output reg [11:0]   exec_addr;
 
+
     output decode2ifetch_en;
     output decode2exec_en;
+    output decode2exec_latch_ret_addr;
 
     input [7:0]         sr;
     output [11:0]       tgt_addr;
+    output [2:0]        sp_msb_10_8; //upper 3 bit for stack pointer from control register
 
  /****************************STATUS_REGISTER BIT MAP******************************
  *|    7    |    6    |    5    |    4    |    3    |    2    |    1    |    0    |
@@ -106,14 +111,38 @@ module idecode (
     *+---------+---------+---------+---------+---------+---------+---------+---------+
     */       
 
-
     //wires
     wire [7:0] curr_inst;
 
-    assign curr_inst = inst_i;
+    assign curr_inst = func_ret ? `OP_CODE_NOP : inst_i;
 
-    assign decode2ifetch_en = fetch_en & ~halted;
+    assign sp_msb_10_8[2:0] = cr[4:3]; //as per control register map
+
+
+    assign decode2ifetch_en = fetch_en & ~halted & ~ret_op_restore_ongoing;
     assign decode2exec_en = exec_en & ~halted;
+    assign decode2exec_latch_ret_addr = (exec_ctrl_next == `CPU_OPERATION_CALL);
+
+
+    wire func_ret_next;
+    assign func_ret_next = idecode_en & (exec_ctrl_next == `CPU_OPERATION_RET);
+
+    reg func_ret;
+    reg func_ret_q;
+
+    always @(posedge clk) begin
+        if(!reset_) begin
+            func_ret    <= 1'b0;
+            func_ret_q  <= 1'b0;
+        end
+        else begin
+            func_ret    <= func_ret_next;
+            func_ret_q  <= func_ret;
+        end
+    end
+
+    wire ret_op_restore_ongoing;
+    assign ret_op_restore_ongoing = func_ret || func_ret_q;
 
     //retimer
     always @(posedge clk) begin
@@ -135,6 +164,7 @@ module idecode (
             soft_rst            <= 1'b0;
             cr                  <= `CR_SP_INIT_MSB;
         end
+        //else if(idecode_en) begin
         else begin
             imm_mode            <= imm_mode_next;
             prev_inst           <= curr_inst;
@@ -189,12 +219,12 @@ module idecode (
                             `JMP: begin
                                 exec_addr_next = ((prev_inst & 8'h07) << 8) | curr_inst;
                                 fetch_en_next = 1'b1;
-                                if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: ADDRESS = %d} ",cycle_counter, exec_addr_next);
+                                if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_JMP: ADDRESS = %d} ",cycle_counter, exec_addr_next);
                             end
                             `CALL: begin 
                                 exec_addr_next = ((prev_inst & 8'h07) << 8) | curr_inst;
                                 fetch_en_next = 1'b1;
-                                if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: ADDRESS = %d} ",cycle_counter, exec_addr_next);
+                                if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_CALL: ADDRESS = %d} ",cycle_counter, exec_addr_next);
                             end
                             default: begin
                                 if(`DEBUG_PRINT & print_en) $display("cycle = %05d: OPCODE: %02x", cycle_counter,prev_inst);
@@ -203,17 +233,29 @@ module idecode (
                         endcase
                         exec_imm_val_next = curr_inst;
                     end
-                    `ADD,
-                    `SUB,
-                    `AND,
+                    `ADD: begin
+                        exec_imm_val_next = curr_inst;
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_ADD: IMMEDIATE_VAL = %d} ", cycle_counter,exec_imm_val_next);
+                    end
+                    `SUB: begin
+                        exec_imm_val_next = curr_inst;
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_SUB: IMMEDIATE_VAL = %d} ", cycle_counter,exec_imm_val_next);
+                    end
+                    `AND: begin
+                        exec_imm_val_next = curr_inst;
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_AND: IMMEDIATE_VAL = %d} ", cycle_counter,exec_imm_val_next);
+                    end
                     `XOR: begin 
                         exec_imm_val_next = curr_inst;
-                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: IMMEDIATE_VAL = %d} ", cycle_counter,exec_imm_val_next);
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_XOR: IMMEDIATE_VAL = %d} ", cycle_counter,exec_imm_val_next);
                     end
-                    `LD,
+                    `LD: begin
+                        exec_addr_next = ((prev_inst & 8'h07) << 8) | curr_inst;
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_LD: ADDRESS = %d} ",cycle_counter, exec_addr_next);
+                    end
                     `ST: begin
                         exec_addr_next = ((prev_inst & 8'h07) << 8) | curr_inst;
-                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: ADDRESS = %d} ",cycle_counter, exec_addr_next);
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_ST: ADDRESS = %d} ",cycle_counter, exec_addr_next);
                     end
                     default: begin
                         if(`DEBUG_PRINT & print_en) $display("cycle = %05d: OPCODE: %02x\n",cycle_counter, prev_inst);
@@ -236,7 +278,7 @@ module idecode (
                                     `RET: begin
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: RET}", cycle_counter);
                                        exec_ctrl_next = `CPU_OPERATION_RET; 
-                                       fetch_en_next = 1'b0;
+                                       fetch_en_next = 1'b1;
                                     end
                                     `HALT: begin
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: HALT}", cycle_counter);
@@ -278,23 +320,26 @@ module idecode (
                                     (cr[`CR_BCNZ_BIT_POS] & sr[`SR_NZ_BIT_POS]) || //branch if zero condition true
                                     (cr[`CR_BCZ_BIT_POS] & sr[`SR_Z_BIT_POS])) begin //branch if zero condition true
                                     exec_ctrl_next = `CPU_OPERATION_JMP;
+                                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: JMP_TRUE}", cycle_counter);
                                 end
                                 else begin
                                     exec_ctrl_next = `EXEC_NOP;
+                                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: JMP_FALSE}", cycle_counter);
                                 end
-                                if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: JMP}", cycle_counter);
                             end
                             `CALL: begin
-                                if( ~(cr[`CR_BCNZ_BIT_POS] | cr[`CR_BCZ_BIT_POS]) || //unconditional branch
-                                     (cr[`CR_BCNZ_BIT_POS] & sr[`SR_NZ_BIT_POS]) || //branch if zero condition true
-                                     (cr[`CR_BCZ_BIT_POS] & sr[`SR_Z_BIT_POS])) begin //branch if zero condition true
-                                    exec_ctrl_next = `CPU_OPERATION_CALL;
-                                end
-                                else begin
-                                    exec_ctrl_next = `EXEC_NOP;
-                                end
-
-                                if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CALL}", cycle_counter);
+                                //if( ~(cr[`CR_BCNZ_BIT_POS] | cr[`CR_BCZ_BIT_POS]) || //unconditional branch
+                                //     (cr[`CR_BCNZ_BIT_POS] & sr[`SR_NZ_BIT_POS]) || //branch if zero condition true
+                                //     (cr[`CR_BCZ_BIT_POS] & sr[`SR_Z_BIT_POS])) begin //branch if zero condition true
+                                //    exec_ctrl_next = `CPU_OPERATION_CALL;
+                                //    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CALL_TRUE}", cycle_counter);
+                                //end
+                                //else begin
+                                //    exec_ctrl_next = `EXEC_NOP;
+                                //    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CALL_FALSE}", cycle_counter);
+                                //end
+                                exec_ctrl_next = `CPU_OPERATION_CALL;
+                                if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CALL_TRUE}", cycle_counter);
                             end
                             default: begin
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: UNKNOWN}", cycle_counter);

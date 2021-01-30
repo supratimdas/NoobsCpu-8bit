@@ -3,7 +3,7 @@
 * Description   : toplevel file
 * Organization  : NONE 
 * Creation Date : 05-03-2020
-* Last Modified : Sunday 17 January 2021 07:28:34 PM IST
+* Last Modified : Saturday 30 January 2021 11:41:59 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -78,6 +78,14 @@ module noobs_cpu (
 
     wire            idecode_en;
 
+    wire [11:0]     next_addr;
+
+    wire            latch_ret_addr;
+
+    wire [2:0]      sp_msb_10_8; //upper bits of programmable stack pointer
+    wire [11:0]     ret_addr;
+    wire            ret_addr_en;
+
 `ifdef SYNTHESIS
    wire [31:0] cycle_counter;
    wire print_en;
@@ -115,9 +123,12 @@ module noobs_cpu (
         .ifetch_en(ifetch_en),  //< i
         .inst_i(i_data),        //< i
         .tgt_addr(tgt_addr),    //< i
+        .ret_addr(ret_addr),    //< i    //return address
+        .ret_addr_en(ret_addr_en),    //< i    //return address
         .inst_o(inst_o),        //> o
         .idecode_en(idecode_en),//>o
-        .inst_addr(i_addr)      //> o
+        .inst_addr(i_addr),     //> o
+        .next_addr(next_addr)   //>o
     );
 
 
@@ -141,6 +152,8 @@ module noobs_cpu (
         .exec_imm_val_vld(imm_data_vld),                    //>o
         .decode2ifetch_en(ifetch_en),                       //>o
         .decode2exec_en(execute_en),                        //>o
+        .decode2exec_latch_ret_addr(latch_ret_addr),        //>o    //output to immediately latch the return address in temporary flop
+        .sp_msb_10_8(sp_msb_10_8),                          //<o
         .sr(sr)                                             //<i
     );
 
@@ -167,6 +180,7 @@ module noobs_cpu (
         .print_en(print_en),        //<i
         .reset_(reset_),            //<i
         .execute_en(execute_en),    //<i
+        .latch_ret_addr(latch_ret_addr), //<i
         .reg_src0_data(rd_data_0),  //<i 
         .reg_src1_data(rd_data_1),  //<i 
         .imm_data(imm_data),        //<i
@@ -184,6 +198,14 @@ module noobs_cpu (
         .d_mem_rd(m_rd),            //>o
         .d_mem_wr(m_wr),            //>o
         .pc_branch(pc_branch),      //>o
-        .sr(sr)                     //>o
+        .status_reg(sr),            //>o
+        .sp_msb_10_8(sp_msb_10_8),  //<i
+        .ret_addr(ret_addr),        //>o    //return address
+        .ret_addr_en(ret_addr_en),  //>o    //return address
+        .next_addr(next_addr)       //<i
     );
+
+    wire data_memory_access_error;
+    assign data_memory_access_error = m_en & m_wr & m_rd;
+    assert_never #("data_mem rd and wr can never be set simultaneosly") u_assert_never_1 (clk,data_memory_access_error); 
 endmodule

@@ -1,1 +1,3 @@
-Conditional jump implementation is buggy, fix that
+add more tests
+add synthesis directory
+cleanup/restructure codebase

@@ -3,7 +3,7 @@
 * Description   : instruction fetch unit
 * Organization  : NONE 
 * Creation Date : 11-05-2019
-* Last Modified : Sunday 17 January 2021 07:38:35 PM IST
+* Last Modified : Saturday 30 January 2021 09:40:03 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -16,12 +16,15 @@ module ifetch(
     clk,        //< i
     reset_,     //< i
     branch,     //< i branch indication from ctrl unit
+    ret_addr,   //<i    //return address
+    ret_addr_en,//<i
     ifetch_en,  //< i ifetch_en indiaction from ctrl unit
     inst_i,     //< i instruction input from inst_mem
     tgt_addr,   //< i tgt branch addr
     inst_o,     //> o instruction output to decode unit
     idecode_en, //> o ifetch2idecode_en
-    inst_addr   //> o addr for instruction memory 
+    inst_addr,  //> o addr for instruction memory 
+    next_addr   //>o next PC address
 );
     //IOs
     input           clk;
@@ -32,9 +35,12 @@ module ifetch(
 
     input [7:0]     inst_i;
     input [11:0]    tgt_addr;
+    input [11:0]    ret_addr;
+    input           ret_addr_en;
 
     output [7:0]    inst_o;
     output [11:0]   inst_addr;
+    output [11:0]   next_addr;
 
     output          idecode_en;
     
@@ -59,7 +65,7 @@ module ifetch(
 
     wire [11:0] next_addr;
     assign next_addr = PC + 1'b1; 
-    assign pc_addr_next = (ifetch_en) ? ((branch) ? (tgt_addr + 1'b1) : next_addr) : PC;
+    assign pc_addr_next = (ifetch_en) ? ((branch) ? (tgt_addr + 1'b1) : (ret_addr_en ? ret_addr : next_addr)) : PC;
     assign inst_addr = branch ? tgt_addr : PC;    //address for inst mem
 
     //registering instruction from instruction mem
