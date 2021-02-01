@@ -1,6 +1,6 @@
 .data
     VAR1:0x00
-    VAR2:0x07
+    VAR2:0x05
     VAR3:0x00
 .code
         LOAD    R0,VAR1

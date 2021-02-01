@@ -2,7 +2,7 @@
 # File Name     : run_tests.sh
 # Organization  : NONE
 # Creation Date : 15-01-2021
-# Last Modified : Sunday 17 January 2021 06:24:22 PM IST
+# Last Modified : Monday 01 February 2021 08:03:21 PM IST
 # Author        : Supratim Das (supratimofficio@gmail.com)
 ###########################################################
 
@@ -71,4 +71,4 @@ do
         echo $dif" differences found between cmodel/vmodel final data_out dump"
         echo -e "${RED}========================================-"$testname"--FAIL--========================================${NC}"
     fi
-done
+done | grep "PASS\|FAIL"

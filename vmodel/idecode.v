@@ -3,7 +3,7 @@
 * Description   :
 * Organization  : NONE 
 * Creation Date : 11-05-2019
-* Last Modified : Sunday 31 January 2021 12:10:29 AM IST
+* Last Modified : Monday 01 February 2021 07:55:26 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -244,6 +244,10 @@ module idecode (
                     `AND: begin
                         exec_imm_val_next = curr_inst;
                         if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_AND: IMMEDIATE_VAL = %d} ", cycle_counter,exec_imm_val_next);
+                    end
+                    `OR: begin 
+                        exec_imm_val_next = curr_inst;
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_OR: IMMEDIATE_VAL = %d} ", cycle_counter,exec_imm_val_next);
                     end
                     `XOR: begin 
                         exec_imm_val_next = curr_inst;

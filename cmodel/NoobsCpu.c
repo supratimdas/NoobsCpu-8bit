@@ -3,7 +3,7 @@
 * Description   : C-model for the NoobsCpu ISA
 * Organization  : NONE 
 * Creation Date : 15-03-2019
-* Last Modified : Sunday 17 January 2021 02:28:54 PM IST
+* Last Modified : Monday 01 February 2021 07:52:54 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 #include "NoobsCpu_Util.h"
@@ -233,6 +233,7 @@ void idecode(){
                 case ADD : 
                 case SUB :
                 case AND :
+                case OR :
                 case XOR :
                     exec_params.src1_val = instruction;
                     debug_printf("{IDECODE: IMMEDIATE_VAL = %u} ",exec_params.src1_val);
@@ -353,7 +354,7 @@ void idecode(){
                     if(imm_mode){
                         exec_params.src0_val = GET_REG_VALUE(GET_REG_PTR0(instruction));
                         exec_params.dst_reg = GET_REG_PTR1(instruction);
-                        debug_printf("{IDECODE: ORI: src0_val = %u, dst_reg = %u} ",exec_params.src0_val,exec_params.dst_reg);
+                        debug_printf("{IDECODE: ORI: src0_val = %u, dst_reg = %u. %d} ",exec_params.src0_val,exec_params.dst_reg, imm_mode);
                     }else{
                         exec_params.src0_val = GET_REG_VALUE(GET_REG_PTR0(instruction));
                         exec_params.src1_val = GET_REG_VALUE(GET_REG_PTR1(instruction));

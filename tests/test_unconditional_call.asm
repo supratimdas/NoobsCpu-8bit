@@ -4,6 +4,8 @@
 .code
     LOAD    R0,SRC
     CALL    STORE_DST
+    ORI     R0,R0,0xaa
+    STORE   R0,0xf
     HALT
  
 
