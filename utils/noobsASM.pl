@@ -5,13 +5,14 @@ use Getopt::Long qw(GetOptions);
 
 #a very basic lookup table based assembler
 my %OP_CODE_HASH;
-$OP_CODE_HASH{NOP}      = 0b000_00_000;
-$OP_CODE_HASH{RET}      = 0b000_00_001;
-$OP_CODE_HASH{HALT}     = 0b000_00_010;
-$OP_CODE_HASH{RST}      = 0b000_00_011;
-$OP_CODE_HASH{SET_BCZ}  = 0b000_00_100;
-$OP_CODE_HASH{SET_BCNZ} = 0b000_00_101;
-$OP_CODE_HASH{CLR_BC}   = 0b000_00_110;
+$OP_CODE_HASH{NOP}          = 0b000_00_000;
+$OP_CODE_HASH{RET}          = 0b000_00_001;
+$OP_CODE_HASH{HALT}         = 0b000_00_010;
+$OP_CODE_HASH{SET_BCZ}      = 0b000_00_011;
+$OP_CODE_HASH{SET_BCNZ}     = 0b000_00_100;
+$OP_CODE_HASH{CLR_BC}       = 0b000_00_101;
+$OP_CODE_HASH{SET_ADR_MODE} = 0b000_00_110;
+$OP_CODE_HASH{RST_ADR_MODE} = 0b000_00_111;
 $OP_CODE_HASH{CALL}     = 0b000_11_000;
 #$OP_CODE_HASH{CALLZ}    = 0b000_11_000;
 #$OP_CODE_HASH{CALLNZ}   = 0b000_11_000;
@@ -98,6 +99,8 @@ while (<ASM>) {
                 }else{
                     die "ERROR: Identifier $label_args[0] redefined\n";
                 }
+                my @num_args = split(',',$label_args[1]);
+                $data_index += @num_args-1;
             }
             $data_index++;
         }
@@ -180,8 +183,11 @@ while (<ASM>) {
         $code_section = 1;
     }else{                      #actual data/code 
         if($data_section){
-            $data_mem[$data_index] = to_int($line);
-            $data_index++;
+            my @elements = split(',', $line);
+            foreach my $data_elem (@elements) {
+                $data_mem[$data_index] = to_int($data_elem);
+                $data_index++;
+            }
         }
 
         if($code_section){

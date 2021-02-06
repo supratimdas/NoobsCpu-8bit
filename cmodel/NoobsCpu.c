@@ -3,7 +3,7 @@
 * Description   : C-model for the NoobsCpu ISA
 * Organization  : NONE 
 * Creation Date : 15-03-2019
-* Last Modified : Monday 01 February 2021 07:52:54 PM IST
+* Last Modified : Saturday 06 February 2021 05:14:44 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 #include "NoobsCpu_Util.h"
@@ -24,7 +24,7 @@ uint8_t     cr;     //control register
 /****************************CONTROL_REGISTER BIT MAP*******************************
  *|    7    |    6    |    5    |    4    |    3    |    2    |    1    |    0    |
  *+---------+---------+---------+---------+---------+---------+---------+---------+
- *|  RSVD   |  RSVD   |  RSVD   | SP_MSB10| SP_MSB9 | SP_MSB8 |  BCNZ   |   BCZ   |
+ *|  RSVD   |  RSVD   |ADR_MODE | SP_MSB10| SP_MSB9 | SP_MSB8 |  BCNZ   |   BCZ   |
  *+---------+---------+---------+---------+---------+---------+---------+---------+
  */
 
@@ -75,8 +75,9 @@ void update_status_regs(){
     //update status reg
     switch(exec_params.execute_control){
         case EXEC_NOP:
-        case MEM_OPERATION_RD:
-        case MEM_OPERATION_WR:
+        case MEM_OPERATION_RD: 
+        case MEM_OPERATION_WR: 
+            break;
         case CPU_OPERATION_JMP:
         case CPU_OPERATION_CALL:
             sr = sr & ~(SR_Z | SR_NZ | SR_OVF);
@@ -150,14 +151,93 @@ void execute(){
                 debug_printf("{EXEC_XOR: regs[%u] = %u ^ %u. value = %u} ",exec_params.dst_reg, exec_params.src0_val,exec_params.src1_val,exec_params.result);
                 break;
             case MEM_OPERATION_RD :
-                regs[exec_params.dst_reg] = data_mem[exec_params.address];
+                switch(exec_params.address) {
+                    case 0: 
+                        regs[exec_params.dst_reg] = regs[0];
+                        debug_printf("{REG_OPERATION_RD: regs[%u] <= reg[0]. value = %u} ",exec_params.dst_reg, regs[0]);
+                        break;
+                    case 1: 
+                        regs[exec_params.dst_reg] = regs[1];
+                        debug_printf("{REG_OPERATION_RD: regs[%u] <= reg[1]. value = %u} ",exec_params.dst_reg, regs[1]);
+                        break;
+                    case 2: 
+                        regs[exec_params.dst_reg] = regs[2];
+                        debug_printf("{REG_OPERATION_RD: regs[%u] <= reg[2]. value = %u} ",exec_params.dst_reg, regs[2]);
+                        break;
+                    case 3: 
+                        regs[exec_params.dst_reg] = regs[3];
+                        debug_printf("{REG_OPERATION_RD: regs[%u] <= reg[3]. value = %u} ",exec_params.dst_reg, regs[3]);
+                        break;
+                    case 4: 
+                        regs[exec_params.dst_reg] = cr;
+                        debug_printf("{REG_OPERATION_RD: regs[%u] <= cr. value = %u} ",exec_params.dst_reg, cr);
+                        break;
+                    case 5: 
+                        regs[exec_params.dst_reg] = sr;
+                        debug_printf("{REG_OPERATION_RD: regs[%u] <= sr. value = %u} ",exec_params.dst_reg, sr);
+                        break;
+                    case 6: 
+                        regs[exec_params.dst_reg] = sp; 
+                        debug_printf("{REG_OPERATION_RD: regs[%u] <= sp. value = %u} ",exec_params.dst_reg, sp);
+                        break;
+                    case 7: 
+                        fprintf(stderr, "FATAL: address: %02x is reserved\n", exec_params.address); exit(1);
+                        break;
+                    default: 
+                        if(cr & CR_ADR_MODE) {
+                            regs[exec_params.dst_reg] = data_mem[exec_params.address + regs[3]];
+                            debug_printf("{MEM_OPERATION_RD_INDIRECT: regs[%u] <= data[%u]. value = %u} ",exec_params.dst_reg,(exec_params.address+regs[3]), data_mem[exec_params.address]);
+                        }else{
+                            regs[exec_params.dst_reg] = data_mem[exec_params.address];
+                            debug_printf("{MEM_OPERATION_RD_DIRECT: regs[%u] <= data[%u]. value = %u} ",exec_params.dst_reg,exec_params.address, data_mem[exec_params.address]);
+                        }
+                        break;
+                }
                 update_status_regs();
-                debug_printf("{MEM_OPERATION_RD: regs[%u] <= data[%u]. value = %u} ",exec_params.dst_reg,exec_params.address, data_mem[exec_params.address]);
                 break;
             case MEM_OPERATION_WR :
-                data_mem[exec_params.address] = regs[exec_params.dst_reg];
+                switch(exec_params.address) {
+                    case 0: 
+                        regs[0] = regs[exec_params.dst_reg]; 
+                        debug_printf("{REG_OPERATION_WR: regs[%u] => reg[0]. value = %u} ",exec_params.dst_reg, regs[0]);
+                        break;
+                    case 1: 
+                        regs[1] = regs[exec_params.dst_reg];
+                        debug_printf("{REG_OPERATION_WR: regs[%u] => reg[1]. value = %u} ",exec_params.dst_reg, regs[1]);
+                        break;
+                    case 2: regs[2] = 
+                        regs[exec_params.dst_reg];
+                        debug_printf("{REG_OPERATION_WR: regs[%u] => reg[2]. value = %u} ",exec_params.dst_reg, regs[2]);
+                        break;
+                    case 3: 
+                        regs[3] = regs[exec_params.dst_reg];
+                        debug_printf("{REG_OPERATION_WR: regs[%u] => reg[3]. value = %u} ",exec_params.dst_reg, regs[3]);
+                        break;
+                    case 4: 
+                        cr  = regs[exec_params.dst_reg];
+                        debug_printf("{REG_OPERATION_WR: regs[%u] => cr. value = %u} ",exec_params.dst_reg, cr);
+                        break;
+                    case 5: 
+                        fprintf(stderr, "FATAL: address: %02x(STATUS_REGISTER) wr is not allowed\n", exec_params.address); exit(1);
+                        break;
+                    case 6: 
+                        sp  = regs[exec_params.dst_reg]; 
+                        debug_printf("{REG_OPERATION_WR: regs[%u] => sp. value = %u} ",exec_params.dst_reg, sp);
+                        break;
+                    case 7: 
+                        fprintf(stderr, "FATAL: address: %02x is reserved\n", exec_params.address); exit(1);
+                        break;
+                    default: 
+                        if(cr & CR_ADR_MODE) {
+                            data_mem[exec_params.address + regs[3]] =  regs[exec_params.dst_reg];
+                            debug_printf("{MEM_OPERATION_WR_INDIRECT: regs[%u] => data[%u]. value = %u} ",exec_params.dst_reg, (exec_params.address + regs[3]), data_mem[exec_params.address + regs[3]]);
+                        }else{
+                            data_mem[exec_params.address] =  regs[exec_params.dst_reg];
+                            debug_printf("{MEM_OPERATION_WR_DIRECT: regs[%u] => data[%u]. value = %u} ",exec_params.dst_reg, exec_params.address , data_mem[exec_params.address]);
+                        }
+                        break;
+                }
                 update_status_regs();
-                debug_printf("{MEM_OPERATION_WR: regs[%u] => data[%u]. value = %u} ",exec_params.dst_reg,exec_params.address, data_mem[exec_params.address]);
                 break;
             case CPU_OPERATION_JMP :
                 if((cr & CR_BCZ) && (sr & SR_Z)){  //branch if zero
@@ -176,6 +256,7 @@ void execute(){
                 update_status_regs();
                 break;
             case CPU_OPERATION_CALL :
+                //TODO: implement conditional call similar to branch op above
                 stack_addr = (((cr >> 3) & 0x07) << 8) | sp;
                 data_mem[stack_addr] = ((pc >> 8) & 0x07);
                 data_mem[stack_addr+1] = (pc & 0xff);
@@ -264,10 +345,6 @@ void idecode(){
                                     debug_printf("{IDECODE: HALT} ");
                                     halted = 1;
                                     break;
-                                case RST :
-                                    debug_printf("{IDECODE: RESET} ");
-                                    noobs_cpu_init();   //flush pipe and reset everything
-                                    break;
                                 case SET_BCZ :
                                     cr = (cr & (~CR_BCNZ)) | CR_BCZ;
                                     debug_printf("{IDECODE: SET_BCZ %02x} ",cr);
@@ -281,6 +358,16 @@ void idecode(){
                                 case CLR_BC :
                                     debug_printf("{IDECODE: CLR_BC} ");
                                     cr = (cr & (~(CR_BCZ | CR_BCNZ)));
+                                    exec_params.execute_control = EXEC_IDLE;
+                                    break;
+                                case SET_ADR_MODE :
+                                    cr = (cr & (~CR_ADR_MODE)) | CR_ADR_MODE;
+                                    debug_printf("{IDECODE: SET_ADR_MODE %02x} ",cr);
+                                    exec_params.execute_control = EXEC_IDLE;
+                                    break;
+                                case RST_ADR_MODE :
+                                    cr = (cr & (~CR_ADR_MODE));
+                                    debug_printf("{IDECODE: RST_ADR_MODE %02x} ",cr);
                                     exec_params.execute_control = EXEC_IDLE;
                                     break;
                                 default:

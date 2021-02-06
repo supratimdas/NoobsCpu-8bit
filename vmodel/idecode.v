@@ -3,7 +3,7 @@
 * Description   :
 * Organization  : NONE 
 * Creation Date : 11-05-2019
-* Last Modified : Monday 01 February 2021 07:55:26 PM IST
+* Last Modified : Saturday 06 February 2021 05:15:35 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -18,7 +18,6 @@ module idecode (
     idecode_en,                 //<i
     inst_i,                     //<i    //input from ifetch stage
     tgt_addr,                   //<i 
-
     exec_ctrl,                  //>o    //encoded execute control to execute unit
     exec_src0_reg,              //>o    //register file rd_sel_0
     exec_src0_reg_rd_en,        //>o    //rd_en_0
@@ -33,6 +32,9 @@ module idecode (
     decode2exec_latch_ret_addr, //>o    //output to immediately latch the return address in temporary flop
     sr,                         //<i    //status register
     sp_msb_10_8,                //>o    //stack pointer msb 10-8
+    cr,                         //>o    //control register output
+    cr_update,                  //<i    //control register wr_access data
+    cr_update_en                //<i    //control register wr_access en
 );
     //IOs
     input            clk;
@@ -42,6 +44,8 @@ module idecode (
 
     input            idecode_en;
     input [7:0]      inst_i;
+    input [7:0]      cr_update;
+    input            cr_update_en;
 
     output reg [3:0]    exec_ctrl;
     output reg [1:0]    exec_src0_reg;
@@ -52,6 +56,7 @@ module idecode (
     output reg [0:0]    exec_imm_val_vld;
     output reg [1:0]    exec_dst_reg;
     output reg [11:0]   exec_addr;
+    output reg [7:0]    cr; 
 
 
     output decode2ifetch_en;
@@ -99,10 +104,6 @@ module idecode (
     reg [0:0] halted_next;
     reg [0:0] halted;
 
-    reg [0:0] soft_rst_next;
-    reg [0:0] soft_rst;
-
-    reg [7:0] cr; //TODO: should also be accesible in mem_addr: 0x04 (need to implement)
     reg [7:0] cr_next;
     /****************************CONTROL_REGISTER BIT MAP*****************************
     *|    7    |    6    |    5    |    4    |    3    |    2    |    1    |    0    |
@@ -161,7 +162,6 @@ module idecode (
             exec_imm_val_vld    <= 1'b0;
             exec_en             <= 1'b0;
             halted              <= 1'b0;
-            soft_rst            <= 1'b0;
             cr                  <= `CR_SP_INIT_MSB;
         end
         //else if(idecode_en) begin
@@ -180,7 +180,6 @@ module idecode (
             exec_imm_val_vld    <= exec_imm_val_vld_next;
             exec_en             <= exec_en_next;
             halted              <= halted_next|halted; //sticky
-            soft_rst            <= soft_rst_next;
             cr                  <= cr_next;
         end
     end
@@ -200,12 +199,11 @@ module idecode (
         exec_imm_val_next = exec_imm_val;
         exec_imm_val_vld_next = exec_imm_val_vld;
         halted_next = 1'b0;
-        soft_rst_next = 1'b0;
 
         fatal_err = 1'b0;
         unimplemented_err = 1'b0;
 
-        cr_next = cr;
+        cr_next = cr_update_en ? cr_update : cr;
         
         if(idecode_en) begin // {
             if(imm_mode) begin // {
@@ -289,10 +287,6 @@ module idecode (
                                        fetch_en_next = 1'b0;
                                        halted_next = 1'b1;
                                     end
-                                    `RST: begin
-                                       if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: RESET}", cycle_counter);
-                                       soft_rst_next = 1'b1;
-                                    end
                                     `SET_BCZ: begin
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SET_BCZ}", cycle_counter);
                                        exec_ctrl_next = `EXEC_NOP;
@@ -307,6 +301,16 @@ module idecode (
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CLR_BC}", cycle_counter);
                                        exec_ctrl_next = `EXEC_NOP;
                                        cr_next = (cr_next & (~(`CR_BCZ | `CR_BCNZ)));
+                                    end
+                                    `SET_ADR_MODE: begin
+                                       if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SET_ADR_MODE}", cycle_counter);
+                                       exec_ctrl_next = `EXEC_NOP;
+                                       cr_next = (cr_next & (~`CR_ADR_MODE)) | `CR_ADR_MODE;
+                                    end
+                                    `RST_ADR_MODE: begin
+                                       if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: RST_ADR_MODE}", cycle_counter);
+                                       exec_ctrl_next = `EXEC_NOP;
+                                       cr_next = (cr_next & (~`CR_ADR_MODE));
                                     end
                                     default: begin
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: UNKNOWN}", cycle_counter);
@@ -447,7 +451,7 @@ module idecode (
                         exec_src0_reg_next = `GET_LD_ST_REG_PTR(curr_inst);
                         exec_src0_reg_rd_en_next = 1'b1;
                         imm_mode_next = 1'b1;
-                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: STORE reg[%d]} ", cycle_counter,exec_dst_reg_next);
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: STORE reg[%d]} ", cycle_counter,exec_src0_reg_next);
                     end
                 endcase
                 

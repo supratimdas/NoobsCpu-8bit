@@ -3,7 +3,7 @@
 * Description   : this is the register file model
 * Organization  : NONE 
 * Creation Date : 01-09-2019
-* Last Modified : Sunday 17 January 2021 05:37:04 PM IST
+* Last Modified : Saturday 06 February 2021 12:48:59 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -21,6 +21,10 @@ module reg_file (
     rd_en_1,    //<i
     wr_sel,     //<i
     wr_en,      //<i
+    reg0,       //>o
+    reg1,       //>o
+    reg2,       //>o
+    reg3,       //>o
     
     wr_data,    //<i
 
@@ -42,10 +46,10 @@ module reg_file (
     output reg [7:0] rd_data_0;
     output reg [7:0] rd_data_1;
 
-    reg [7:0] reg0;
-    reg [7:0] reg1;
-    reg [7:0] reg2;
-    reg [7:0] reg3;
+    output reg [7:0] reg0;
+    output reg [7:0] reg1;
+    output reg [7:0] reg2;
+    output reg [7:0] reg3;
 
 
     reg [7:0] rd_data_0_next;

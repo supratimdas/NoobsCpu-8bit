@@ -2,7 +2,7 @@
 * File Name     : tb_top.v
 * Organization  : NONE
 * Creation Date : 02-01-2021
-* Last Modified : Sunday 17 January 2021 06:22:35 PM IST
+* Last Modified : Saturday 06 February 2021 07:06:24 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 
@@ -142,10 +142,13 @@ module tb_top;
             m_addr_in <= m_addr_in + d_mem_prog_started;
             d_mem_prog_started <= 1;
         end
-        else if(system_ready && $feof(data_mem_input_file)) begin
+        
+        if(system_ready && $feof(data_mem_input_file)) begin
+            m_data_in = 0;
             data_memory_loaded <= 1;
         end
     end
+
 
     reg [11:0] i_addr_in;
     reg [7:0]  i_data_in;
@@ -164,7 +167,8 @@ module tb_top;
             i_addr_in <= i_addr_in + i_mem_prog_started;
             i_mem_prog_started <= 1'b1;
         end
-        else if(system_ready && $feof(inst_mem_input_file)) begin
+        
+        if(system_ready && $feof(inst_mem_input_file)) begin
             inst_memory_loaded <= 1;
         end
     end

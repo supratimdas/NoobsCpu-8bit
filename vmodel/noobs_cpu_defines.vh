@@ -27,6 +27,7 @@
 `define CR_SP_INIT_MSB     8'h1c
 `define CR_BCNZ            8'h02
 `define CR_BCZ             8'h01
+`define CR_ADR_MODE        8'h40 
 
 `define CR_BCNZ_BIT_POS  1  
 `define CR_BCZ_BIT_POS   0 
@@ -37,13 +38,14 @@
 `define JMP     8'h02
 `define CALL    8'h03
 
-`define NOP      8'h00
-`define RET      8'h01
-`define HALT     8'h02
-`define RST      8'h03
-`define SET_BCZ  8'h04
-`define SET_BCNZ 8'h05 
-`define CLR_BC   8'h06
+`define NOP             8'h00
+`define RET             8'h01
+`define HALT            8'h02
+`define SET_BCZ         8'h03
+`define SET_BCNZ        8'h04 
+`define CLR_BC          8'h05
+`define SET_ADR_MODE    8'h06
+`define RST_ADR_MODE    8'h07
 
 //basic internal operations supported
 `define EXEC_NOP            4'h0

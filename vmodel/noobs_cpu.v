@@ -3,7 +3,7 @@
 * Description   : toplevel file
 * Organization  : NONE 
 * Creation Date : 05-03-2020
-* Last Modified : Saturday 30 January 2021 11:41:59 PM IST
+* Last Modified : Saturday 06 February 2021 03:46:33 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -86,6 +86,15 @@ module noobs_cpu (
     wire [11:0]     ret_addr;
     wire            ret_addr_en;
 
+    wire [7:0]      reg0;
+    wire [7:0]      reg1;
+    wire [7:0]      reg2;
+    wire [7:0]      reg3;
+
+    wire [7:0]      cr;
+    wire [7:0]      cr_update;
+    wire            cr_update_en;
+
 `ifdef SYNTHESIS
    wire [31:0] cycle_counter;
    wire print_en;
@@ -154,7 +163,11 @@ module noobs_cpu (
         .decode2exec_en(execute_en),                        //>o
         .decode2exec_latch_ret_addr(latch_ret_addr),        //>o    //output to immediately latch the return address in temporary flop
         .sp_msb_10_8(sp_msb_10_8),                          //<o
-        .sr(sr)                                             //<i
+        .sr(sr),                                            //<i
+        .cr(cr),                                            //>o
+        .cr_update(cr_update),                              //<i
+        .cr_update_en(cr_update_en)                         //<i
+
     );
 
 
@@ -162,6 +175,10 @@ module noobs_cpu (
     reg_file u_reg_file(
         .clk(clk),              //<i
         .reset_(reset_),        //<i
+        .reg0(reg0),            //>o
+        .reg1(reg1),            //>o
+        .reg2(reg2),            //>o
+        .reg3(reg3),            //>o
         .rd_sel_0(rd_sel_0),    //<i
         .rd_en_0(rd_en_0),      //<i
         .rd_sel_1(rd_sel_1),    //<i
@@ -202,7 +219,14 @@ module noobs_cpu (
         .sp_msb_10_8(sp_msb_10_8),  //<i
         .ret_addr(ret_addr),        //>o    //return address
         .ret_addr_en(ret_addr_en),  //>o    //return address
-        .next_addr(next_addr)       //<i
+        .next_addr(next_addr),      //<i
+        .reg0(reg0),                //<i
+        .reg1(reg1),                //<i
+        .reg2(reg2),                //<i
+        .reg3(reg3),                //<i
+        .cr(cr),                    //<i
+        .cr_update(cr_update),      //>o
+        .cr_update_en(cr_update_en) //>o
     );
 
     wire data_memory_access_error;

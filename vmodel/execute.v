@@ -3,7 +3,7 @@
 * Description   : execute unit
 * Organization  : NONE 
 * Creation Date : 07-03-2020
-* Last Modified : Sunday 31 January 2021 12:14:45 AM IST
+* Last Modified : Saturday 06 February 2021 05:31:40 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -15,6 +15,14 @@ module execute(
     print_en,       //<i //for enabling prints
     latch_ret_addr, //<i //latching return address    
     sp_msb_10_8,    //>i    //stack pointer msb 10-8
+    reg0,           //<i
+    reg1,           //<i
+    reg2,           //<i
+    reg3,           //<i
+    cr,             //<i
+    cr_update,      //>o
+    cr_update_en,   //>o
+
 
     next_addr,      //<i
     execute_en,     //<i
@@ -47,7 +55,7 @@ module execute(
     input           clk;
     input           reset_;
     input           print_en;
-    input [31:0]     cycle_counter;
+    input [31:0]    cycle_counter;
 
     input           execute_en;
     input [7:0]     reg_src0_data;
@@ -61,7 +69,7 @@ module execute(
     input [2:0]     sp_msb_10_8;
 
     output reg [7:0]    reg_wr_data;
-    output reg [1:0]    reg_wr_sel;
+    output [1:0]        reg_wr_sel;
     output reg [0:0]    reg_wr_en;
     
     input  [3:0]        exec_ctrl;
@@ -70,6 +78,13 @@ module execute(
     output [11:0]       d_mem_addr;
     output [7:0]        d_mem_data_out;
     input  [7:0]        d_mem_data_in;
+
+    input  [7:0]        reg0;
+    input  [7:0]        reg1;
+    input  [7:0]        reg2;
+    input  [7:0]        reg3;
+    input  [7:0]        cr;
+
     output              d_mem_en;
     output              d_mem_rd;
     output              d_mem_wr;
@@ -79,6 +94,9 @@ module execute(
     output              pc_branch;
     output [11:0]       ret_addr;
     output              ret_addr_en;
+
+    output reg [7:0]    cr_update;
+    output reg          cr_update_en;
 
 
     wire [7:0] src0_data;
@@ -97,9 +115,14 @@ module execute(
     reg  [7:0] sp_lsb_7_0_next;
 
 
+    reg [1:0]    dst_reg_wr_sel;
+
+
     wire [11:0] stack_addr;
     reg         ret_addr_en;
     reg         ret_addr_en_next;
+
+    wire [11:0] indirect_addr;
 
     /****************************STATUS_REGISTER BIT MAP*******************************
     *|    7    |    6    |    5    |    4    |    3    |    2    |    1    |    0    |
@@ -197,15 +220,18 @@ module execute(
             exec_ctrl_1D[3:0] <= `EXEC_NOP;
             sr[7:0]           <= 8'd0;
             execute_en_1D     <= 1'b0;
-            reg_wr_sel        <= 2'd0;
+            dst_reg_wr_sel    <= 2'd0;
         end
         else begin
             exec_ctrl_1D[3:0] <= exec_ctrl;
             execute_en_1D     <= execute_en;
             sr[7:0]           <= sr_next[7:0];
-            reg_wr_sel        <= dst_reg;
+            dst_reg_wr_sel    <= dst_reg;
         end
     end
+
+    reg indirect_reg_wr_access;
+    assign reg_wr_sel = indirect_reg_wr_access ? dst_addr[2:0] : dst_reg_wr_sel; 
 
     //src0 & src1 data (these are available +1 cycle after decode generates the selects)
     assign src0_data = reg_src0_data;
@@ -218,12 +244,13 @@ module execute(
     assign restore_ret_addr_upper = ((exec_ctrl_1D[3:0] == `CPU_OPERATION_RET) & execute_en_1D);
     assign d_mem_rd = ((exec_ctrl_1D[3:0] == `MEM_OPERATION_RD) & execute_en_1D) || restore_ret_addr_upper || restore_ret_addr_lower;
     assign d_mem_wr = ((exec_ctrl_1D[3:0] == `MEM_OPERATION_WR) & execute_en_1D) || store_ret_addr_lower || store_ret_addr_upper;
-    assign d_mem_en = (d_mem_wr || d_mem_rd) & (execute_en_1D || store_ret_addr_lower || store_ret_addr_upper || restore_ret_addr_upper || restore_ret_addr_lower);
+    assign d_mem_en = (d_mem_wr || d_mem_rd) & (execute_en_1D || store_ret_addr_lower || store_ret_addr_upper || restore_ret_addr_upper || restore_ret_addr_lower) & (d_mem_addr >= 12'h008);
 
     assign d_mem_data_out[7:0] = (store_ret_addr_lower) ? ret_addr0 : ((store_ret_addr_upper) ? ret_addr1  : src0_data);
 
     assign stack_addr = (store_ret_addr_lower|store_ret_addr_upper) ? {1'b0, sp_msb_10_8, sp_lsb_7_0} : ({1'b0, sp_msb_10_8, sp_lsb_7_0} - 1);
-    assign d_mem_addr = (store_ret_addr_lower|store_ret_addr_upper|restore_ret_addr_upper|restore_ret_addr_lower) ? (stack_addr) : dst_addr;
+    assign indirect_addr = dst_addr + reg3;
+    assign d_mem_addr = (store_ret_addr_lower|store_ret_addr_upper|restore_ret_addr_upper|restore_ret_addr_lower) ? (stack_addr) : ((cr & `CR_ADR_MODE) ? indirect_addr : dst_addr);
 
     //actual operation based on the encoded exec_ctrl info
     always @(*) begin
@@ -234,6 +261,9 @@ module execute(
         ovf_flag = 1'b0;
         ret_addr_en_next = 1'b0;
         sr_next = sr;
+        cr_update = 8'd0;
+        cr_update_en = 1'b0;
+        indirect_reg_wr_access = 1'b0;
         if(execute_en_1D) begin
             case(exec_ctrl_1D[3:0])
                 `EXEC_NOP : begin
@@ -280,7 +310,17 @@ module execute(
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {ALU_OPERATION_XOR: src0_data = %02x, src1_data = %02x, result = %02x: STATUS_REGISTER = %02x} ", cycle_counter, src0_data, src1_data, reg_wr_data, sr_next);
                 end
                 `MEM_OPERATION_RD : begin
-                    reg_wr_data = d_mem_data_in;
+                    case(dst_addr)
+                        12'h000: reg_wr_data = reg0;
+                        12'h001: reg_wr_data = reg1;
+                        12'h002: reg_wr_data = reg2;
+                        12'h003: reg_wr_data = reg3;
+                        12'h004: reg_wr_data = cr;
+                        12'h005: reg_wr_data = sr;
+                        12'h006: reg_wr_data = sp_lsb_7_0;
+                        12'h007: reg_wr_data = d_mem_data_in; //TODO: illegal access error
+                        default: reg_wr_data = d_mem_data_in;
+                    endcase
                     reg_wr_en = 1;
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {MEM_OPERATION_RD: reg[%d] <= %x: STATUS_REGISTER = %02x} ",cycle_counter, dst_reg, d_mem_data_in, sr_next);
                 end
@@ -291,6 +331,19 @@ module execute(
                 //    sr_next = 8'd0;
                 //end
                 `MEM_OPERATION_WR : begin
+                    case(dst_addr)
+                        12'h000, 12'h001, 12'h002, 12'h003: begin
+                            reg_wr_data = d_mem_data_out; 
+                            reg_wr_en = 1; 
+                            indirect_reg_wr_access = 1;
+                        end
+                        12'h004: begin
+                            cr_update = d_mem_data_out; cr_update_en = 1;
+                        end
+                        12'h005: sr_next = sr;
+                        12'h006: sp_lsb_7_0_next = d_mem_data_out;
+                    endcase
+
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {MEM_OPERATION_WR: %x => mem[%d] : STATUS_REGISTER = %02x} ",cycle_counter, d_mem_data_out, d_mem_addr, sr_next);
                 end
                 `CPU_OPERATION_RET : begin

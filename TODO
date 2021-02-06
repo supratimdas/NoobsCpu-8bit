@@ -1,4 +1,3 @@
 add synthesis directory
 cleanup/restructure codebase
--- will be interesting to add support for storing/restoring registers during a function call, will be helpful for context switch
 -- tests based on overflow condition

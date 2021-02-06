@@ -27,19 +27,21 @@
 #define CR_SP_INIT_MSB     0x1c
 #define CR_BCNZ            0x02
 #define CR_BCZ             0x01
+#define CR_ADR_MODE        0x40 
 //sub type of MC_CTRL_USR base operation
 #define MISC    0x00
 #define USR     0x01
 #define JMP     0x02
 #define CALL    0x03
 
-#define NOP      0x00
-#define RET      0x01
-#define HALT     0x02
-#define RST      0x03
-#define SET_BCZ  0x04
-#define SET_BCNZ 0x05 
-#define CLR_BC   0x06
+#define NOP             0x00
+#define RET             0x01
+#define HALT            0x02
+#define SET_BCZ         0x03
+#define SET_BCNZ        0x04 
+#define CLR_BC          0x05
+#define SET_ADR_MODE    0x06
+#define RST_ADR_MODE    0x07
 
 //basic internal operations supported
 #define EXEC_NOP            0x00

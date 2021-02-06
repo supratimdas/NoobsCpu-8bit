@@ -45,4 +45,7 @@ basic tb infra, and cleanup
 1/15/2021:
 setup of test running infra
 1st test up, basic load from memory, store to memory
+
+2/06/2021:
+all basic features coded, and verified.
 </pre>

@@ -14,3 +14,5 @@ test_conditional_jmpnz_true, test_conditional_jmpnz_true.asm, "conditional jump 
 test_loop, test_loop.asm, "a simple loop"
 multiply, multiply.asm, "a simple multiplication implementation"
 fibonacci, fibonacci.asm, "compute the nth fibonacci number"
+array_copy, test_array_copy.asm, "to copy an array using loop"
+test_alternate_reg_access,test_alternate_reg_access.asm, "alternate access of registers using reserved address 0-6"
