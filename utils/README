@@ -1,6 +1,19 @@
+ASSEMBLER: noobsASM.pl
 using the assembler is really simple:
 noobsASM.pl <your-prog.asm>
 
 it generates 2 output files:
 - code.txt : a hex dump in human readable format, for the instruction memory
 - data.txt : a hex dump in human readable format, for the data memory
+
+
+FPGA MEMORY GENERATOR, for Lattice iCE40 FPGA
+gen_fpga_mem.pl -input_file <code/data.txt output from assembler> -type <inst|data>
+based on argument, generates:
+inst_mem.v
+data_mem.v
+
+ready for instantiation
+
+NOTE: the address starts at 0x00, so especially for data memory, output from cpu_addr must be subtracted by -8, since in 
+the architecture the 1st 8 addresses are reserved
