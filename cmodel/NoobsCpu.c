@@ -3,7 +3,7 @@
 * Description   : C-model for the NoobsCpu ISA
 * Organization  : NONE 
 * Creation Date : 15-03-2019
-* Last Modified : Saturday 06 February 2021 05:14:44 PM IST
+* Last Modified : Thursday 18 February 2021 07:10:33 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 #include "NoobsCpu_Util.h"
@@ -41,6 +41,8 @@ typedef struct {
     uint8_t execute_control;
     uint8_t src0_val;
     uint8_t src1_val;
+    //uint8_t src0_reg;
+    //uint8_t src1_reg;
     uint8_t dst_reg;
     uint16_t address;
     uint16_t result;
@@ -78,8 +80,8 @@ void update_status_regs(){
         case MEM_OPERATION_RD: 
         case MEM_OPERATION_WR: 
             break;
+        case CPU_OPERATION_CALL: break;
         case CPU_OPERATION_JMP:
-        case CPU_OPERATION_CALL:
             sr = sr & ~(SR_Z | SR_NZ | SR_OVF);
             break;
         case ALU_OPERATION_ADD:
@@ -186,7 +188,7 @@ void execute(){
                     default: 
                         if(cr & CR_ADR_MODE) {
                             regs[exec_params.dst_reg] = data_mem[exec_params.address + regs[3]];
-                            debug_printf("{MEM_OPERATION_RD_INDIRECT: regs[%u] <= data[%u]. value = %u} ",exec_params.dst_reg,(exec_params.address+regs[3]), data_mem[exec_params.address]);
+                            debug_printf("{MEM_OPERATION_RD_INDIRECT: regs[%u] <= data[%u]. value = %u} ",exec_params.dst_reg,(exec_params.address+regs[3]), data_mem[exec_params.address+regs[3]]);
                         }else{
                             regs[exec_params.dst_reg] = data_mem[exec_params.address];
                             debug_printf("{MEM_OPERATION_RD_DIRECT: regs[%u] <= data[%u]. value = %u} ",exec_params.dst_reg,exec_params.address, data_mem[exec_params.address]);
@@ -240,17 +242,20 @@ void execute(){
                 update_status_regs();
                 break;
             case CPU_OPERATION_JMP :
-                if((cr & CR_BCZ) && (sr & SR_Z)){  //branch if zero
+                if(((cr & (CR_BCZ|CR_BCNZ)) == (CR_BCZ|CR_BCNZ)) && (sr & SR_OVF)){  //branch if ovf
+                    pc = exec_params.address;
+                    debug_printf("{CPU_OPERATION_OVF} ");
+                }else if((cr & CR_BCZ) && (sr & SR_Z) && !(cr & CR_BCNZ)){  //branch if zero
                     pc = exec_params.address;
                     debug_printf("{CPU_OPERATION_JMPZ} ");
-                }else if((cr & CR_BCNZ) && (sr & SR_NZ)){  //branch if not-zero
+                }else if((cr & CR_BCNZ) && (sr & SR_NZ) && !(cr & CR_BCZ)){  //branch if not-zero
                     pc = exec_params.address;
                     debug_printf("{CPU_OPERATION_JMPNZ} ");
                 }else if(!(cr & (CR_BCZ|CR_BCNZ))){    //unconditionl branch
                     pc = exec_params.address;
                     debug_printf("{CPU_OPERATION_JMP} ");
                 }else{
-                    debug_printf("{CPU_OPERATION_JMP FALSE} ");
+                    debug_printf("{CPU_OPERATION_JMP FALSE} %02x %02x %02x %02x", cr, (CR_BCZ|CR_BCNZ), sr, SR_OVF);
                 }
                 ifetch_en = 1;
                 update_status_regs();
@@ -260,9 +265,9 @@ void execute(){
                 stack_addr = (((cr >> 3) & 0x07) << 8) | sp;
                 data_mem[stack_addr] = ((pc >> 8) & 0x07);
                 data_mem[stack_addr+1] = (pc & 0xff);
+                debug_printf("{CPU_OPERATION_CALL} return_addr: %02x, stack_addr = %02x ",pc,stack_addr);
                 pc = exec_params.address;
                 sp+=2;
-                debug_printf("{CPU_OPERATION_CALL} ");
                 ifetch_en = 1;
                 update_status_regs();
                 break;
@@ -271,7 +276,7 @@ void execute(){
                 ret_addr = (data_mem[stack_addr-2] << 8)|data_mem[stack_addr-1]; 
                 pc = ret_addr;
                 sp-=2;
-                debug_printf("{CPU_OPERATION_RET} ");
+                debug_printf("{CPU_OPERATION_RET} return_addr = %02x, sp = %02x",pc,stack_addr);
                 ifetch_en = 1;
                 update_status_regs();
                 break;
@@ -302,7 +307,7 @@ void idecode(){
                         case JMP:
                         case CALL:
                             exec_params.address = (((prev_instruction & 0x07) << 8 ) | instruction);
-                            debug_printf("{IDECODE: ADDRESS = %u} ",exec_params.address);
+                            debug_printf("{IDECODE: BRANCH_ADDRESS = %u} ",exec_params.address);
                             ifetch_en = 0;  //stop fetching new instructions untill the jump call
                             break;
                         default: 
@@ -322,7 +327,7 @@ void idecode(){
                 case LD :
                 case ST :
                     exec_params.address = (((prev_instruction & 0x07) << 8 ) | instruction);
-                    debug_printf("{IDECODE: ADDRESS = %u} ",exec_params.address);
+                    debug_printf("{IDECODE: DATA_ADDRESS = %u} ",exec_params.address);
                     break;
             }
         }else{
@@ -346,12 +351,14 @@ void idecode(){
                                     halted = 1;
                                     break;
                                 case SET_BCZ :
-                                    cr = (cr & (~CR_BCNZ)) | CR_BCZ;
+                                    //cr = (cr & (~CR_BCNZ)) | CR_BCZ;
+                                    cr = cr | CR_BCZ;
                                     debug_printf("{IDECODE: SET_BCZ %02x} ",cr);
                                     exec_params.execute_control = EXEC_IDLE;
                                     break;
                                 case SET_BCNZ :
-                                    cr = (cr & (~CR_BCZ)) | CR_BCNZ;
+                                    //cr = (cr & (~CR_BCZ)) | CR_BCNZ;
+                                    cr = cr | CR_BCNZ;
                                     debug_printf("{IDECODE: SET_BCNZ %02x} ",cr);
                                     exec_params.execute_control = EXEC_IDLE;
                                     break;
@@ -415,7 +422,8 @@ void idecode(){
                     }else{
                         exec_params.src0_val = GET_REG_VALUE(GET_REG_PTR0(instruction));
                         exec_params.src1_val = GET_REG_VALUE(GET_REG_PTR1(instruction));
-                        exec_params.dst_reg = GET_REG_PTR1(instruction);
+                        //exec_params.src0_reg = GET_REG_PTR0(instruction);
+                        //exec_params.src1_reg = GET_REG_PTR1(instruction);
                         debug_printf("{IDECODE: SUB: src0_val = %u, src1_val = %u, dst_reg = %u} ",exec_params.src0_val,exec_params.src1_val,exec_params.dst_reg);
                     }
 
@@ -476,6 +484,9 @@ void idecode(){
                     exec_params.execute_control = MEM_OPERATION_WR;
                     exec_params.dst_reg = GET_LD_ST_REG_PTR(instruction);
                     debug_printf("{IDECODE: STORE reg[%u]} ", exec_params.dst_reg);
+                    break;
+                default: 
+                    fprintf(stderr,"FATAL Error: unknown. opcode=%0x\n",instruction);
                     break;
             }
             //if mode is immediate, insert a 1 disable execution for 1 cycle 

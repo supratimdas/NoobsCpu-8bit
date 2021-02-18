@@ -3,7 +3,7 @@
 * Description   :
 * Organization  : NONE 
 * Creation Date : 11-05-2019
-* Last Modified : Saturday 06 February 2021 05:15:35 PM IST
+* Last Modified : Thursday 18 February 2021 07:13:16 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -217,12 +217,12 @@ module idecode (
                             `JMP: begin
                                 exec_addr_next = ((prev_inst & 8'h07) << 8) | curr_inst;
                                 fetch_en_next = 1'b1;
-                                if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_JMP: ADDRESS = %d} ",cycle_counter, exec_addr_next);
+                                if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_JMP: ADDRESS = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_addr_next, sr, cr);
                             end
                             `CALL: begin 
                                 exec_addr_next = ((prev_inst & 8'h07) << 8) | curr_inst;
                                 fetch_en_next = 1'b1;
-                                if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_CALL: ADDRESS = %d} ",cycle_counter, exec_addr_next);
+                                if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_CALL: ADDRESS = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_addr_next, sr, cr);
                             end
                             default: begin
                                 if(`DEBUG_PRINT & print_en) $display("cycle = %05d: OPCODE: %02x", cycle_counter,prev_inst);
@@ -233,31 +233,31 @@ module idecode (
                     end
                     `ADD: begin
                         exec_imm_val_next = curr_inst;
-                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_ADD: IMMEDIATE_VAL = %d} ", cycle_counter,exec_imm_val_next);
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_ADD: IMMEDIATE_VAL = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_imm_val_next, sr, cr);
                     end
                     `SUB: begin
                         exec_imm_val_next = curr_inst;
-                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_SUB: IMMEDIATE_VAL = %d} ", cycle_counter,exec_imm_val_next);
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_SUB: IMMEDIATE_VAL = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_imm_val_next, sr, cr);
                     end
                     `AND: begin
                         exec_imm_val_next = curr_inst;
-                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_AND: IMMEDIATE_VAL = %d} ", cycle_counter,exec_imm_val_next);
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_AND: IMMEDIATE_VAL = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_imm_val_next, sr, cr);
                     end
                     `OR: begin 
                         exec_imm_val_next = curr_inst;
-                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_OR: IMMEDIATE_VAL = %d} ", cycle_counter,exec_imm_val_next);
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_OR: IMMEDIATE_VAL = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_imm_val_next, sr, cr);
                     end
                     `XOR: begin 
                         exec_imm_val_next = curr_inst;
-                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_XOR: IMMEDIATE_VAL = %d} ", cycle_counter,exec_imm_val_next);
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_XOR: IMMEDIATE_VAL = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_imm_val_next, sr, cr);
                     end
                     `LD: begin
                         exec_addr_next = ((prev_inst & 8'h07) << 8) | curr_inst;
-                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_LD: ADDRESS = %d} ",cycle_counter, exec_addr_next);
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_LD: ADDRESS = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_addr_next, sr, cr);
                     end
                     `ST: begin
                         exec_addr_next = ((prev_inst & 8'h07) << 8) | curr_inst;
-                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_ST: ADDRESS = %d} ",cycle_counter, exec_addr_next);
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_ST: ADDRESS = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_addr_next, sr, cr);
                     end
                     default: begin
                         if(`DEBUG_PRINT & print_en) $display("cycle = %05d: OPCODE: %02x\n",cycle_counter, prev_inst);
@@ -288,29 +288,29 @@ module idecode (
                                        halted_next = 1'b1;
                                     end
                                     `SET_BCZ: begin
-                                       if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SET_BCZ}", cycle_counter);
                                        exec_ctrl_next = `EXEC_NOP;
-                                       cr_next = (cr_next & (~`CR_BCNZ)) | `CR_BCZ;
+                                       cr_next = cr_next | `CR_BCZ;
+                                       if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SET_BCZ} {CR = %02x}", cycle_counter, cr_next);
                                     end
                                     `SET_BCNZ: begin
-                                       if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SET_BCNZ}", cycle_counter);
                                        exec_ctrl_next = `EXEC_NOP;
-                                       cr_next = (cr_next & (~`CR_BCZ)) | `CR_BCNZ;
+                                       cr_next = cr_next | `CR_BCNZ;
+                                       if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SET_BCNZ} {CR = %02x}", cycle_counter, cr_next);
                                     end
                                     `CLR_BC: begin
-                                       if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CLR_BC}", cycle_counter);
                                        exec_ctrl_next = `EXEC_NOP;
                                        cr_next = (cr_next & (~(`CR_BCZ | `CR_BCNZ)));
+                                       if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CLR_BC} {CR = %02x}", cycle_counter, cr_next);
                                     end
                                     `SET_ADR_MODE: begin
-                                       if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SET_ADR_MODE}", cycle_counter);
                                        exec_ctrl_next = `EXEC_NOP;
                                        cr_next = (cr_next & (~`CR_ADR_MODE)) | `CR_ADR_MODE;
+                                       if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SET_ADR_MODE} {CR = %02x}", cycle_counter, cr_next);
                                     end
                                     `RST_ADR_MODE: begin
-                                       if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: RST_ADR_MODE}", cycle_counter);
                                        exec_ctrl_next = `EXEC_NOP;
                                        cr_next = (cr_next & (~`CR_ADR_MODE));
+                                       if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: RST_ADR_MODE} {CR = %02x}", cycle_counter, cr_next);
                                     end
                                     default: begin
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: UNKNOWN}", cycle_counter);
@@ -324,15 +324,31 @@ module idecode (
                                 unimplemented_err = 1'b1;
                             end
                             `JMP: begin
-                                if(~(cr[`CR_BCNZ_BIT_POS] | cr[`CR_BCZ_BIT_POS]) || //unconditional branch
-                                    (cr[`CR_BCNZ_BIT_POS] & sr[`SR_NZ_BIT_POS]) || //branch if zero condition true
-                                    (cr[`CR_BCZ_BIT_POS] & sr[`SR_Z_BIT_POS])) begin //branch if zero condition true
+                                //if(~(cr[`CR_BCNZ_BIT_POS] | cr[`CR_BCZ_BIT_POS]) || //unconditional branch
+                                //    (cr[`CR_BCNZ_BIT_POS] & sr[`SR_NZ_BIT_POS] & ~cr[`CR_BCZ_BIT_POS]) || //branch if zero condition true
+                                //    (cr[`CR_BCZ_BIT_POS] & sr[`SR_Z_BIT_POS] & ~cr[`CR_BCNZ_BIT_POS])) begin //branch if zero condition true
+                                //    exec_ctrl_next = `CPU_OPERATION_JMP;
+                                //    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: JMP_TRUE} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
+                                //end
+                                if(((cr & (`CR_BCZ|`CR_BCNZ)) == (`CR_BCZ|`CR_BCNZ)) && (sr & `SR_OVF)) begin //branch if ovf
                                     exec_ctrl_next = `CPU_OPERATION_JMP;
-                                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: JMP_TRUE}", cycle_counter);
+                                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: JMP_TRUE_IF_OVF} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
+                                end
+                                else if((cr & `CR_BCZ) && (sr & `SR_Z) && !(cr & `CR_BCNZ)) begin  //branch if zero
+                                    exec_ctrl_next = `CPU_OPERATION_JMP;
+                                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: JMP_TRUE_IF_ZERO} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
+                                end
+                                else if((cr & `CR_BCNZ) && (sr & `SR_NZ) && !(cr & `CR_BCZ)) begin  //branch if not-zero
+                                    exec_ctrl_next = `CPU_OPERATION_JMP;
+                                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: JMP_TRUE_IF_NON_ZERO} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
+                                end
+                                else if(!(cr & (`CR_BCZ|`CR_BCNZ))) begin    //unconditionl branch
+                                    exec_ctrl_next = `CPU_OPERATION_JMP;
+                                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: JMP_TRUE_UNCONDITIONAL} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
                                 end
                                 else begin
                                     exec_ctrl_next = `EXEC_NOP;
-                                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: JMP_FALSE}", cycle_counter);
+                                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: JMP_FALSE} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
                                 end
                             end
                             `CALL: begin
@@ -347,7 +363,7 @@ module idecode (
                                 //    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CALL_FALSE}", cycle_counter);
                                 //end
                                 exec_ctrl_next = `CPU_OPERATION_CALL;
-                                if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CALL_TRUE}", cycle_counter);
+                                if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CALL_TRUE} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
                             end
                             default: begin
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: UNKNOWN}", cycle_counter);
@@ -361,7 +377,7 @@ module idecode (
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
                             exec_src0_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: ADDI: src0_reg = %d, dst_reg = %d} ", cycle_counter,exec_src0_reg_next, exec_dst_reg_next);
+                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: ADDI: src0_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_src0_reg_next, exec_dst_reg_next, sr, cr);
                         end
                         else begin
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
@@ -369,7 +385,7 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: ADD: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
+                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: ADD: src0_reg = %d, src1_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next, sr, cr);
                         end
                     end
                     `SUB: begin
@@ -378,7 +394,7 @@ module idecode (
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
                             exec_src0_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SUBI: src0_reg = %d, dst_reg = %d} ", cycle_counter,exec_src0_reg_next, exec_dst_reg_next);
+                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SUBI: src0_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_src0_reg_next, exec_dst_reg_next, sr, cr);
                         end
                         else begin
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
@@ -386,7 +402,7 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SUB: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
+                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SUB: src0_reg = %d, src1_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next, sr, cr);
                         end
                     end
                     `AND: begin
@@ -395,7 +411,7 @@ module idecode (
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
                             exec_src0_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: ANDI: src0_reg = %d, dst_reg = %d} ", cycle_counter,exec_src0_reg_next, exec_dst_reg_next);
+                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: ANDI: src0_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_src0_reg_next, exec_dst_reg_next, sr, cr);
                         end
                         else begin
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
@@ -403,7 +419,7 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: AND: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
+                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: AND: src0_reg = %d, src1_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next, sr, cr);
                         end
                     end
                     `OR: begin
@@ -412,7 +428,7 @@ module idecode (
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
                             exec_src0_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: ORI: src0_reg = %d, dst_reg = %d} ", cycle_counter,exec_src0_reg_next, exec_dst_reg_next);
+                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: ORI: src0_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_src0_reg_next, exec_dst_reg_next, sr, cr);
                         end
                         else begin
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
@@ -420,7 +436,7 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: OR: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
+                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: OR: src0_reg = %d, src1_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next, sr, cr);
                         end
                     end
                     `XOR: begin
@@ -429,7 +445,7 @@ module idecode (
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
                             exec_src0_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: XORI: src0_reg = %d, dst_reg = %d} ", cycle_counter,exec_src0_reg_next, exec_dst_reg_next);
+                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: XORI: src0_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_src0_reg_next, exec_dst_reg_next, sr, cr);
                         end
                         else begin
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
@@ -437,21 +453,21 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
-                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: XOR: src0_reg = %d, src1_reg = %d, dst_reg = %d} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next);
+                            if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: XOR: src0_reg = %d, src1_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next, sr, cr);
                         end
                     end
                     `LD: begin
                         exec_ctrl_next = `MEM_OPERATION_RD;
                         exec_dst_reg_next = `GET_LD_ST_REG_PTR(curr_inst);
                         imm_mode_next = 1'b1;
-                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: LOAD reg[%d]} ", cycle_counter,exec_dst_reg_next);
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: LOAD reg[%d]} {SR = %02x, CR = %02x} ", cycle_counter,exec_dst_reg_next, sr, cr);
                     end
                     `ST: begin
                         exec_ctrl_next = `MEM_OPERATION_WR;
                         exec_src0_reg_next = `GET_LD_ST_REG_PTR(curr_inst);
                         exec_src0_reg_rd_en_next = 1'b1;
                         imm_mode_next = 1'b1;
-                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: STORE reg[%d]} ", cycle_counter,exec_src0_reg_next);
+                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: STORE reg[%d]} {SR = %02x, CR = %02x} ", cycle_counter,exec_src0_reg_next, sr, cr);
                     end
                 endcase
                 

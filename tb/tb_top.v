@@ -2,7 +2,7 @@
 * File Name     : tb_top.v
 * Organization  : NONE
 * Creation Date : 02-01-2021
-* Last Modified : Saturday 06 February 2021 07:06:24 PM IST
+* Last Modified : Thursday 18 February 2021 06:13:31 PM IST
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 
@@ -31,7 +31,6 @@
 `define MAX_MEM_LIMIT 12'd2048
 
 `define RESET_ASSERT_DURATION 50
-`define SIM_DURATION 1000
 `define DATA_MEM_INPUT_FILE "data.txt"
 `define INST_MEM_INPUT_FILE "code.txt"
 `define DATA_MEM_OUTPUT_FILE "data_out.txt"
@@ -83,10 +82,15 @@ module tb_top;
 
 
         //test end
-        wait(cycle_count == `SIM_DURATION);
-        sim_done = 1;
+        wait(data_memory_loaded & inst_memory_loaded);
+        if(`DEBUG_PRINT) $display("***programming_done in %d clock cycles***",cycle_count);
+        @(posedge cpu_reset_);
+        if(`DEBUG_PRINT) $display("***cpu_reset_ deasserted in %d clock cycles***",cycle_count);
+        wait(u_cpu_dut.u_idecode.halted && programming_done); @(posedge clk);
+        if(`DEBUG_PRINT) $display("***cpu halted in in %d clock cycles***",cycle_count);
+        repeat (10) @(posedge clk);
+        #10 sim_done = 1;
         if(`DEBUG_PRINT) $display("***Test End after %d clock cycles***",cycle_count);
-
 
         //read final contents of data memory and dump to a file
         //open data memory output file for writing
@@ -243,21 +247,21 @@ module tb_top;
     assign i_en   = 1'b1;  
 
     wire programming_done;
-    reg [5:0] cool_of_counter;
+    reg [5:0] cool_off_counter;
     wire cpu_reset_;
     assign programming_done = inst_memory_loaded & data_memory_loaded;
 
     always @(posedge clk) begin
         if(!reset_) begin
-            cool_of_counter[5:0] <= 6'd0;
+            cool_off_counter[5:0] <= 6'd0;
         end
         else begin
-            if(cool_of_counter[5] == 0)
-                cool_of_counter[5:0] <= cool_of_counter[5:0] + programming_done;
+            if(cool_off_counter[5] == 0)
+                cool_off_counter[5:0] <= cool_off_counter[5:0] + programming_done;
         end
     end
 
-    assign cpu_reset_ = cool_of_counter[5];
+    assign cpu_reset_ = cool_off_counter[5];
 
     /****************system modules****************/
     wire dut_clk;
