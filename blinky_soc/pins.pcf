@@ -1,0 +1,17 @@
+set_io clk  21
+set_io LED  95
+
+set_io TEST1 99  
+set_io TEST2 98 
+set_io TEST3 97 
+set_io TEST4 96 
+
+
+set_io --warn-no-port D0 91
+set_io --warn-no-port D1 90
+set_io --warn-no-port D2 88
+set_io --warn-no-port D3 87
+set_io --warn-no-port D4 78
+set_io --warn-no-port D5 79
+set_io --warn-no-port D6 80
+set_io --warn-no-port D7 81

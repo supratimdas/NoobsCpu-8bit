@@ -66,7 +66,8 @@ while(<INPUT_FILE>) {
     $line =~ s/\n//g;
     $line =~ s/0x//g;
     push(@init_array, "$line");
-    $num_bytes++;
+    push(@init_array, "00"); ##memory accesses are 16bits aligned, entering a dummy value
+    $num_bytes+=2;
     if($num_bytes == 32) {
         @init_array = reverse(@init_array);
         my $initialization_str = join("_", @init_array);
