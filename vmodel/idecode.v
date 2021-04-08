@@ -3,7 +3,7 @@
 * Description   :
 * Organization  : NONE 
 * Creation Date : 11-05-2019
-* Last Modified : Thursday 18 February 2021 07:13:16 PM IST
+* Last Modified : Thursday 08 April 2021 05:06:32 PM
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -117,7 +117,7 @@ module idecode (
 
     assign curr_inst = func_ret ? `OP_CODE_NOP : inst_i;
 
-    assign sp_msb_10_8[2:0] = cr[4:3]; //as per control register map
+    assign sp_msb_10_8[2:0] = cr[4:2]; //as per control register map
 
 
     assign decode2ifetch_en = fetch_en & ~halted & ~ret_op_restore_ongoing;
@@ -217,15 +217,21 @@ module idecode (
                             `JMP: begin
                                 exec_addr_next = ((prev_inst & 8'h07) << 8) | curr_inst;
                                 fetch_en_next = 1'b1;
+`ifndef SYNTHESIS
                                 if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_JMP: ADDRESS = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_addr_next, sr, cr);
+`endif
                             end
                             `CALL: begin 
                                 exec_addr_next = ((prev_inst & 8'h07) << 8) | curr_inst;
                                 fetch_en_next = 1'b1;
+`ifndef SYNTHESIS
                                 if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_CALL: ADDRESS = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_addr_next, sr, cr);
+`endif
                             end
                             default: begin
+`ifndef SYNTHESIS
                                 if(`DEBUG_PRINT & print_en) $display("cycle = %05d: OPCODE: %02x", cycle_counter,prev_inst);
+`endif
                                 fatal_err = 1'b1;
                             end
                         endcase
@@ -233,34 +239,50 @@ module idecode (
                     end
                     `ADD: begin
                         exec_imm_val_next = curr_inst;
+`ifndef SYNTHESIS
                         if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_ADD: IMMEDIATE_VAL = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_imm_val_next, sr, cr);
+`endif
                     end
                     `SUB: begin
                         exec_imm_val_next = curr_inst;
+`ifndef SYNTHESIS
                         if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_SUB: IMMEDIATE_VAL = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_imm_val_next, sr, cr);
+`endif
                     end
                     `AND: begin
                         exec_imm_val_next = curr_inst;
+`ifndef SYNTHESIS
                         if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_AND: IMMEDIATE_VAL = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_imm_val_next, sr, cr);
+`endif
                     end
                     `OR: begin 
                         exec_imm_val_next = curr_inst;
+`ifndef SYNTHESIS
                         if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_OR: IMMEDIATE_VAL = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_imm_val_next, sr, cr);
+`endif
                     end
                     `XOR: begin 
                         exec_imm_val_next = curr_inst;
+`ifndef SYNTHESIS
                         if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_XOR: IMMEDIATE_VAL = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_imm_val_next, sr, cr);
+`endif
                     end
                     `LD: begin
                         exec_addr_next = ((prev_inst & 8'h07) << 8) | curr_inst;
+`ifndef SYNTHESIS
                         if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_LD: ADDRESS = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_addr_next, sr, cr);
+`endif
                     end
                     `ST: begin
                         exec_addr_next = ((prev_inst & 8'h07) << 8) | curr_inst;
+`ifndef SYNTHESIS
                         if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE_ST: ADDRESS = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_addr_next, sr, cr);
+`endif
                     end
                     default: begin
+`ifndef SYNTHESIS
                         if(`DEBUG_PRINT & print_en) $display("cycle = %05d: OPCODE: %02x\n",cycle_counter, prev_inst);
+`endif
                         fatal_err = 1'b1;
                     end
                 endcase
@@ -274,46 +296,64 @@ module idecode (
                             `MISC: begin
                                 casez(curr_inst & 8'h07)
                                     `NOP: begin
+`ifndef SYNTHESIS
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: NOP}", cycle_counter);
+`endif
                                        exec_ctrl_next = `EXEC_NOP; 
                                     end
                                     `RET: begin
+`ifndef SYNTHESIS
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: RET}", cycle_counter);
+`endif
                                        exec_ctrl_next = `CPU_OPERATION_RET; 
                                        fetch_en_next = 1'b1;
                                     end
                                     `HALT: begin
+`ifndef SYNTHESIS
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: HALT}", cycle_counter);
+`endif
                                        fetch_en_next = 1'b0;
                                        halted_next = 1'b1;
                                     end
                                     `SET_BCZ: begin
                                        exec_ctrl_next = `EXEC_NOP;
                                        cr_next = cr_next | `CR_BCZ;
+`ifndef SYNTHESIS
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SET_BCZ} {CR = %02x}", cycle_counter, cr_next);
+`endif
                                     end
                                     `SET_BCNZ: begin
                                        exec_ctrl_next = `EXEC_NOP;
                                        cr_next = cr_next | `CR_BCNZ;
+`ifndef SYNTHESIS
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SET_BCNZ} {CR = %02x}", cycle_counter, cr_next);
+`endif
                                     end
                                     `CLR_BC: begin
                                        exec_ctrl_next = `EXEC_NOP;
                                        cr_next = (cr_next & (~(`CR_BCZ | `CR_BCNZ)));
+`ifndef SYNTHESIS
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CLR_BC} {CR = %02x}", cycle_counter, cr_next);
+`endif
                                     end
                                     `SET_ADR_MODE: begin
                                        exec_ctrl_next = `EXEC_NOP;
                                        cr_next = (cr_next & (~`CR_ADR_MODE)) | `CR_ADR_MODE;
+`ifndef SYNTHESIS
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SET_ADR_MODE} {CR = %02x}", cycle_counter, cr_next);
+`endif
                                     end
                                     `RST_ADR_MODE: begin
                                        exec_ctrl_next = `EXEC_NOP;
                                        cr_next = (cr_next & (~`CR_ADR_MODE));
+`ifndef SYNTHESIS
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: RST_ADR_MODE} {CR = %02x}", cycle_counter, cr_next);
+`endif
                                     end
                                     default: begin
+`ifndef SYNTHESIS
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: UNKNOWN}", cycle_counter);
+`endif
                                        fatal_err = 1'b1;
                                     end
                                 endcase
@@ -332,23 +372,33 @@ module idecode (
                                 //end
                                 if(((cr & (`CR_BCZ|`CR_BCNZ)) == (`CR_BCZ|`CR_BCNZ)) && (sr & `SR_OVF)) begin //branch if ovf
                                     exec_ctrl_next = `CPU_OPERATION_JMP;
+`ifndef SYNTHESIS
                                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: JMP_TRUE_IF_OVF} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
+`endif
                                 end
                                 else if((cr & `CR_BCZ) && (sr & `SR_Z) && !(cr & `CR_BCNZ)) begin  //branch if zero
                                     exec_ctrl_next = `CPU_OPERATION_JMP;
+`ifndef SYNTHESIS
                                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: JMP_TRUE_IF_ZERO} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
+`endif
                                 end
                                 else if((cr & `CR_BCNZ) && (sr & `SR_NZ) && !(cr & `CR_BCZ)) begin  //branch if not-zero
                                     exec_ctrl_next = `CPU_OPERATION_JMP;
+`ifndef SYNTHESIS
                                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: JMP_TRUE_IF_NON_ZERO} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
+`endif
                                 end
                                 else if(!(cr & (`CR_BCZ|`CR_BCNZ))) begin    //unconditionl branch
                                     exec_ctrl_next = `CPU_OPERATION_JMP;
+`ifndef SYNTHESIS
                                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: JMP_TRUE_UNCONDITIONAL} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
+`endif
                                 end
                                 else begin
                                     exec_ctrl_next = `EXEC_NOP;
+`ifndef SYNTHESIS
                                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: JMP_FALSE} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
+`endif
                                 end
                             end
                             `CALL: begin
@@ -363,10 +413,14 @@ module idecode (
                                 //    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CALL_FALSE}", cycle_counter);
                                 //end
                                 exec_ctrl_next = `CPU_OPERATION_CALL;
+`ifndef SYNTHESIS
                                 if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CALL_TRUE} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
+`endif
                             end
                             default: begin
+`ifndef SYNTHESIS
                                        if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: UNKNOWN}", cycle_counter);
+`endif
                                        fatal_err = 1'b1;
                             end
                         endcase
@@ -377,7 +431,9 @@ module idecode (
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
                             exec_src0_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
+`ifndef SYNTHESIS
                             if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: ADDI: src0_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_src0_reg_next, exec_dst_reg_next, sr, cr);
+`endif
                         end
                         else begin
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
@@ -385,7 +441,9 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
+`ifndef SYNTHESIS
                             if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: ADD: src0_reg = %d, src1_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next, sr, cr);
+`endif
                         end
                     end
                     `SUB: begin
@@ -394,7 +452,9 @@ module idecode (
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
                             exec_src0_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
+`ifndef SYNTHESIS
                             if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SUBI: src0_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_src0_reg_next, exec_dst_reg_next, sr, cr);
+`endif
                         end
                         else begin
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
@@ -402,7 +462,9 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
+`ifndef SYNTHESIS
                             if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: SUB: src0_reg = %d, src1_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next, sr, cr);
+`endif
                         end
                     end
                     `AND: begin
@@ -411,7 +473,9 @@ module idecode (
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
                             exec_src0_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
+`ifndef SYNTHESIS
                             if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: ANDI: src0_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_src0_reg_next, exec_dst_reg_next, sr, cr);
+`endif
                         end
                         else begin
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
@@ -419,7 +483,9 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
+`ifndef SYNTHESIS
                             if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: AND: src0_reg = %d, src1_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next, sr, cr);
+`endif
                         end
                     end
                     `OR: begin
@@ -428,7 +494,9 @@ module idecode (
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
                             exec_src0_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
+`ifndef SYNTHESIS
                             if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: ORI: src0_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_src0_reg_next, exec_dst_reg_next, sr, cr);
+`endif
                         end
                         else begin
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
@@ -436,7 +504,9 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
+`ifndef SYNTHESIS
                             if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: OR: src0_reg = %d, src1_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next, sr, cr);
+`endif
                         end
                     end
                     `XOR: begin
@@ -445,7 +515,9 @@ module idecode (
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
                             exec_src0_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
+`ifndef SYNTHESIS
                             if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: XORI: src0_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ", cycle_counter,exec_src0_reg_next, exec_dst_reg_next, sr, cr);
+`endif
                         end
                         else begin
                             exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
@@ -453,21 +525,27 @@ module idecode (
                             exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
+`ifndef SYNTHESIS
                             if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: XOR: src0_reg = %d, src1_reg = %d, dst_reg = %d} {SR = %02x, CR = %02x} ",cycle_counter, exec_src0_reg_next, exec_src1_reg_next, exec_dst_reg_next, sr, cr);
+`endif
                         end
                     end
                     `LD: begin
                         exec_ctrl_next = `MEM_OPERATION_RD;
                         exec_dst_reg_next = `GET_LD_ST_REG_PTR(curr_inst);
                         imm_mode_next = 1'b1;
+`ifndef SYNTHESIS
                         if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: LOAD reg[%d]} {SR = %02x, CR = %02x} ", cycle_counter,exec_dst_reg_next, sr, cr);
+`endif
                     end
                     `ST: begin
                         exec_ctrl_next = `MEM_OPERATION_WR;
                         exec_src0_reg_next = `GET_LD_ST_REG_PTR(curr_inst);
                         exec_src0_reg_rd_en_next = 1'b1;
                         imm_mode_next = 1'b1;
+`ifndef SYNTHESIS
                         if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: STORE reg[%d]} {SR = %02x, CR = %02x} ", cycle_counter,exec_src0_reg_next, sr, cr);
+`endif
                     end
                 endcase
                 
@@ -481,6 +559,7 @@ module idecode (
 
 
     //assertions
-    assert_never #("Unimplemeneted or Illegal Instruction error") u_assert_never_1 (clk,unimplemented_err); 
-    assert_never #("Fatal error") u_assert_never_2 (clk,fatal_err); 
+    `ASSERT_NEVER("Unimplemeneted or Illegal Instruction error", u_assert_never_1, clk,unimplemented_err) 
+    `ASSERT_NEVER("Fatal error", u_assert_never_2, clk,fatal_err) 
+
 endmodule

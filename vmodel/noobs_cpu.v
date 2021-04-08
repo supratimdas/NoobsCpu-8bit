@@ -3,7 +3,7 @@
 * Description   : toplevel file
 * Organization  : NONE 
 * Creation Date : 05-03-2020
-* Last Modified : Saturday 06 February 2021 03:46:33 PM IST
+* Last Modified : Thursday 08 April 2021 04:25:40 PM
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -231,5 +231,5 @@ module noobs_cpu (
 
     wire data_memory_access_error;
     assign data_memory_access_error = m_en & m_wr & m_rd;
-    assert_never #("data_mem rd and wr can never be set simultaneosly") u_assert_never_1 (clk,data_memory_access_error); 
+    `ASSERT_NEVER("data_mem rd and wr can never be set simultaneosly", u_assert_never_1, clk, data_memory_access_error)
 endmodule

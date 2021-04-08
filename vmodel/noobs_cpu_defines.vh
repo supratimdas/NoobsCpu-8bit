@@ -73,4 +73,26 @@
 `define SR_I_TRP_BIT_POS   4 
 
 `define OP_CODE_NOP 8'd0
+
+`define ASSERT_NEVER(MSG, INST, CLK, EXPR) \
+`ifndef SYNTHESIS \
+    assert_never #(MSG) INST (CLK, EXPR);  \
+`endif \
+
+`define ASSERT_ALWAYS(MSG, INST, CLK, EXPR) \
+`ifndef SYNTHESIS \
+    assert_always #(MSG) INST (CLK, EXPR);  \
+`endif \
+
+`define ASSERT_IMPL(MSG, INST, CLK, ANT_EXPR, CONS_EXPR) \
+`ifndef SYNTHESIS \
+    assert_impl #(MSG) INST (CLK, ANT_EXPR, CONS_EXPR);  \
+`endif \
+
+`define ASSERT_NO_X(MSG, INST, CLK, EXPR) \
+`ifndef SYNTHESIS \
+    assert_no_x #(MSG) INST (CLK, EXPR);  \
+`endif \
+
+
 `endif

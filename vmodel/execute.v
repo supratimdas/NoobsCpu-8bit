@@ -3,7 +3,7 @@
 * Description   : execute unit
 * Organization  : NONE 
 * Creation Date : 07-03-2020
-* Last Modified : Saturday 06 February 2021 05:31:40 PM IST
+* Last Modified : Thursday 08 April 2021 05:13:11 PM
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -149,10 +149,14 @@ module execute(
         if(execute_en) begin
             case(exec_ctrl[3:0]) 
                 `CPU_OPERATION_JMP : begin
+`ifndef SYNTHESIS
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {CPU_OPERATION_JMP: STATUS_REGISTER = %02x} ",cycle_counter, sr_next);
+`endif
                 end
                 `CPU_OPERATION_CALL : begin
+`ifndef SYNTHESIS
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {CPU_OPERATION_CALL: STATUS_REGISTER = %02x} ",cycle_counter, sr_next);
+`endif
                 end
             endcase
         end
@@ -202,12 +206,16 @@ module execute(
         end
     end
 
+    reg sp_lsb_7_0_update;
     always @(*) begin
         if(sp_incr) begin
             sp_lsb_7_0_next = sp_lsb_7_0 + 1;
         end
         else if(sp_decr) begin
             sp_lsb_7_0_next = sp_lsb_7_0 - 1;
+        end
+        else if(sp_lsb_7_0_update) begin
+            sp_lsb_7_0_next = d_mem_data_out;
         end
         else begin
             sp_lsb_7_0_next = sp_lsb_7_0;
@@ -263,11 +271,14 @@ module execute(
         sr_next = sr;
         cr_update = 8'd0;
         cr_update_en = 1'b0;
+        sp_lsb_7_0_update = 0;
         indirect_reg_wr_access = 1'b0;
         if(execute_en_1D) begin
             case(exec_ctrl_1D[3:0])
                 `EXEC_NOP : begin
+`ifndef SYNTHESIS
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {EXEC_NOP:} ",cycle_counter);
+`endif
                 end
                 `ALU_OPERATION_ADD : begin
                     {ovf_flag, reg_wr_data} = src0_data + src1_data;
@@ -275,7 +286,9 @@ module execute(
                     nz_flag = (reg_wr_data != 8'd0);
                     sr_next = {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
                     reg_wr_en = 1;
+`ifndef SYNTHESIS
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {ALU_OPERATION_ADD: src0_data = %05d, src1_data = %05d, result = %05d: STATUS_REGISTER = %02x} ", cycle_counter, src0_data, src1_data, reg_wr_data, sr_next);
+`endif
                 end
                 `ALU_OPERATION_SUB : begin
                     {ovf_flag, reg_wr_data} = src0_data - src1_data;
@@ -283,7 +296,9 @@ module execute(
                     nz_flag = (reg_wr_data != 8'd0);
                     sr_next = {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
                     reg_wr_en = 1;
+`ifndef SYNTHESIS
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {ALU_OPERATION_SUB: src0_data = %05d, src1_data = %05d, result = %05d: STATUS_REGISTER = %02x} ", cycle_counter, src0_data, src1_data, reg_wr_data, sr_next);
+`endif
                 end
                 `ALU_OPERATION_OR : begin
                     reg_wr_data = src0_data | src1_data;
@@ -291,7 +306,9 @@ module execute(
                     nz_flag = (reg_wr_data != 8'd0);
                     sr_next = {4'd0, z_flag, nz_flag, 2'd0};
                     reg_wr_en = 1;
+`ifndef SYNTHESIS
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {ALU_OPERATION_OR: src0_data = %02x, src1_data = %02x, result = %02x: STATUS_REGISTER = %02x} ", cycle_counter, src0_data, src1_data, reg_wr_data, sr_next);
+`endif
                 end
                 `ALU_OPERATION_AND : begin
                     reg_wr_data = src0_data & src1_data;
@@ -299,7 +316,9 @@ module execute(
                     nz_flag = (reg_wr_data != 8'd0);
                     sr_next = {4'd0, z_flag, nz_flag, 2'd0};
                     reg_wr_en = 1;
+`ifndef SYNTHESIS
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {ALU_OPERATION_AND: src0_data = %02x, src1_data = %02x, result = %02x: STATUS_REGISTER = %02x} ", cycle_counter, src0_data, src1_data, reg_wr_data, sr_next);
+`endif
                 end
                 `ALU_OPERATION_XOR : begin
                     reg_wr_data = src0_data ^ src1_data;
@@ -307,7 +326,9 @@ module execute(
                     nz_flag = (reg_wr_data != 8'd0);
                     sr_next = {4'd0, z_flag, nz_flag, 2'd0};
                     reg_wr_en = 1;
+`ifndef SYNTHESIS
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {ALU_OPERATION_XOR: src0_data = %02x, src1_data = %02x, result = %02x: STATUS_REGISTER = %02x} ", cycle_counter, src0_data, src1_data, reg_wr_data, sr_next);
+`endif
                 end
                 `MEM_OPERATION_RD : begin
                     case(dst_addr)
@@ -322,7 +343,9 @@ module execute(
                         default: reg_wr_data = d_mem_data_in;
                     endcase
                     reg_wr_en = 1;
+`ifndef SYNTHESIS
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {MEM_OPERATION_RD: reg[%d] <= %x: STATUS_REGISTER = %02x} ",cycle_counter, dst_reg, d_mem_data_in, sr_next);
+`endif
                 end
                 //`CPU_OPERATION_JMP : begin
                 //    sr_next = 8'd0;
@@ -341,16 +364,20 @@ module execute(
                             cr_update = d_mem_data_out; cr_update_en = 1;
                         end
                         12'h005: sr_next = sr;
-                        12'h006: sp_lsb_7_0_next = d_mem_data_out;
+                        12'h006: sp_lsb_7_0_update = 1;
                     endcase
 
+`ifndef SYNTHESIS
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {MEM_OPERATION_WR: %x => mem[%d] : STATUS_REGISTER = %02x} ",cycle_counter, d_mem_data_out, d_mem_addr, sr_next);
+`endif
                 end
                 `CPU_OPERATION_RET : begin
                     sr_next = {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};
                     //sr_next = 8'd0;
                     ret_addr_en_next = 1;
+`ifndef SYNTHESIS
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {CPU_OPERATION_RET: STATUS_REGISTER = %02x} ",cycle_counter, sr_next);
+`endif
                 end
                 default : begin
                     sr_next = {4'd0, z_flag, nz_flag, 1'b0, ovf_flag};

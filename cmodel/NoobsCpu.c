@@ -3,7 +3,7 @@
 * Description   : C-model for the NoobsCpu ISA
 * Organization  : NONE 
 * Creation Date : 15-03-2019
-* Last Modified : Thursday 18 February 2021 07:10:33 PM IST
+* Last Modified : Thursday 08 April 2021 04:51:50 PM
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 #include "NoobsCpu_Util.h"
@@ -262,7 +262,7 @@ void execute(){
                 break;
             case CPU_OPERATION_CALL :
                 //TODO: implement conditional call similar to branch op above
-                stack_addr = (((cr >> 3) & 0x07) << 8) | sp;
+                stack_addr = (((cr >> 2) & 0x07) << 8) | sp;
                 data_mem[stack_addr] = ((pc >> 8) & 0x07);
                 data_mem[stack_addr+1] = (pc & 0xff);
                 debug_printf("{CPU_OPERATION_CALL} return_addr: %02x, stack_addr = %02x ",pc,stack_addr);
@@ -272,7 +272,7 @@ void execute(){
                 update_status_regs();
                 break;
             case CPU_OPERATION_RET :
-                stack_addr = (((cr >> 3) & 0x07) << 8)|sp;
+                stack_addr = (((cr >> 2) & 0x07) << 8)|sp;
                 ret_addr = (data_mem[stack_addr-2] << 8)|data_mem[stack_addr-1]; 
                 pc = ret_addr;
                 sp-=2;
