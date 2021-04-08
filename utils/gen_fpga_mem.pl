@@ -23,27 +23,35 @@ die "invalid option for -type arg. legal options are:\ninst\ndata\n" if(!($mem_t
 my @vlog_out = "";
 
 push(@vlog_out, << "VLOG_END");
- module data_mem (
+ module ${mem_type}_mem (
     clk,    //< i
-    data,   //< io >
+    addr,   //< i
     rd,     //< i
-    wr,     //< i
-    en      //< i
+    rd_data,//> o
+VLOG_END
+if($mem_type =~ /data/) {
+push(@vlog_out, << "VLOG_END");
+    wr_data,    //< i
+    wr,         //< i
+VLOG_END
+}
+push(@vlog_out, << "VLOG_END");
  );
 
     //IOs
     input           clk;
 
-    inout [7:0]     data;
+    output [7:0]    rd_data;
     input [10:0]    addr;
     input           rd;
+VLOG_END
+if($mem_type =~ /data/) {
+push(@vlog_out, << "VLOG_END");
     input           wr;
-    input           en;
-
-    wire [7:0]      r_data;
-
-
-    assign data[7:0] = (en & rd) ? r_data[7:0] : 8'bzzzz_zzzz;
+    input [7:0]     wr_data;
+VLOG_END
+}
+push(@vlog_out, << "VLOG_END");
 
     SB_RAM40_4K #(
 VLOG_END
@@ -94,7 +102,7 @@ push(@vlog_out, << "VLOG_END");
         .WCLK(),
         .WCLKE(),
         .WDATA(),
-        .WE()
+        .WE(),
 VLOG_END
 }else{
 push(@vlog_out, << "VLOG_END");
@@ -104,14 +112,14 @@ push(@vlog_out, << "VLOG_END");
         .WADDR(addr),
         .WCLK(clk),
         .WCLKE(1'b1),
-        .WDATA(data),
-        .WE(we)
+        .WDATA(wr_data),
+        .WE(wr),
 VLOG_END
 }
 
 
 push(@vlog_out, << "VLOG_END");
-       .RDATA(r_data),
+       .RDATA(rd_data),
         .RADDR(addr),
         .RCLK(clk),
         .RCLKE(1'b1),
