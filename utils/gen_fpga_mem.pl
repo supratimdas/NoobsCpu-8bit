@@ -107,8 +107,8 @@ push(@vlog_out, << "VLOG_END");
         .WE(),
 VLOG_END
 }else{
-push(@vlog_out, << "VLOG_END");
-       .WRITE_MODE(1),
+push(@vlog_out, << "VLOG_END"); ##check what WRITE_MODE/RD_MODE. got this working after trial and error
+       .WRITE_MODE(0),
         .READ_MODE(1)
     ) ram40_4k_512x8 (
         .WADDR(addr),

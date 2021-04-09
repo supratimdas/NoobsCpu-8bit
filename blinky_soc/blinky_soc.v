@@ -72,14 +72,14 @@ module blinky_soc (
     //assign D6 = m_rd_data[6];
     //assign D7 = m_rd_data[7];
 
-    assign D0 = REG1[0];
-    assign D1 = REG1[1];
-    assign D2 = REG1[2];
-    assign D3 = REG1[3];
-    assign D4 = REG1[4];
-    assign D5 = REG1[5];
-    assign D6 = REG1[6];
-    assign D7 = REG1[7];
+    assign D0 = REG3[0];
+    assign D1 = REG3[1];
+    assign D2 = REG3[2];
+    assign D3 = REG3[3];
+    assign D4 = REG3[4];
+    assign D5 = REG3[5];
+    assign D6 = REG3[6];
+    assign D7 = REG3[7];
 
     //assign D0 = REG_WR_DATA[0];
     //assign D1 = REG_WR_DATA[1];
@@ -129,7 +129,7 @@ module blinky_soc (
     ///////////////////////////////////////////////////////////////////
 
 
-    wire cpu_clk = counter[10];
+    wire cpu_clk = counter[1];
 
     wire [7:0] i_data;
     wire [7:0] m_rd_data;
@@ -203,6 +203,7 @@ module blinky_soc (
     //cpu instance
     noobs_cpu u_noobs_cpu(
         .clk(cpu_clk),                      //<i
+        ////////debug ports///////////
         .REG0(REG0),
         .REG1(REG1),
         .REG2(REG2),
@@ -210,6 +211,7 @@ module blinky_soc (
         .REG_WR_DATA(REG_WR_DATA),
         .REG_WR_SEL(REG_WR_SEL),
         .REG_WR_EN(REG_WR_EN),
+        //////////////////////////////
         .reset_(system_reset_),         //<i
         .i_data(i_data),                //<i inst_mem_data
         .i_addr(i_addr),                //>o inst_mem_address
