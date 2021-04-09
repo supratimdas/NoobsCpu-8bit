@@ -3,7 +3,7 @@
 * Description   : toplevel file
 * Organization  : NONE 
 * Creation Date : 05-03-2020
-* Last Modified : Friday 09 April 2021 06:45:28 PM
+* Last Modified : Friday 09 April 2021 08:57:14 PM
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -24,6 +24,9 @@ module noobs_cpu (
     REG1,   //> o
     REG2,   //> o
     REG3,   //> o
+    REG_WR_DATA, // > o
+    REG_WR_SEL, // > o
+    REG_WR_EN,  // > o
 `endif
     i_data,         //<i inst_mem_data
     i_addr,         //>o inst_mem_address
@@ -55,11 +58,17 @@ module noobs_cpu (
     output [7:0] REG1;   //> o
     output [7:0] REG2;   //> o
     output [7:0] REG3;   //> o
+    output [7:0] REG_WR_DATA;   //> o
+    output [1:0] REG_WR_SEL;   //> o
+    output REG_WR_EN;   //> o
 
     assign REG0 = reg0;
     assign REG1 = reg1;
     assign REG2 = reg2;
     assign REG3 = reg3;
+    assign REG_WR_DATA = wr_data;
+    assign REG_WR_SEL = wr_sel; 
+    assign REG_WR_EN = wr_en;
 `endif
 
     //wires

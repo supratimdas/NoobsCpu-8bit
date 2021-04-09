@@ -70,6 +70,9 @@ while (<ASM>) {
     $line =~ s/\s+/ /g; #replace multi-whitespace with single whitespace
     $line =~ s/, /,/g; #replace whitespaces after comma (generally indicates args in assembly)
     $line_num += 1;
+    if(($line eq "") or ($line =~ /^#/)) { #skip empty lines or comments
+        next;
+    }
     my $num_ws = () = $line =~ /\s/gi;
     if($line =~ /:/) { ## indicates that it has a label
         $num_ws=$num_ws-1;
@@ -168,7 +171,7 @@ while (<ASM>) {
     $line =~ s/\s+/ /g; #replace multi-whitespace with single whitespace
     $line =~ s/, /,/g; #replace whitespaces after comma (generally indicates args in assembly)
     
-    if($line eq "") { #skip empty lines
+    if(($line eq "") or ($line =~ /^#/)) { #skip empty lines or comments
         next;
     }
     #if line has a label, strip the label

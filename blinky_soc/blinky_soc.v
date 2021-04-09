@@ -40,19 +40,19 @@ module blinky_soc (
     output D6;
     output D7;
 
-    reg [23:0] counter;
+    reg [25:0] counter;
     always @(posedge clk) begin
         counter <= counter + 1'b1;
     end
 
-    assign D0 = i_data[0];
-    assign D1 = i_data[1];
-    assign D2 = i_data[2];
-    assign D3 = i_data[3];
-    assign D4 = i_data[4];
-    assign D5 = i_data[5];
-    assign D6 = i_data[6];
-    assign D7 = i_data[7];
+    //assign D0 = i_data[0];
+    //assign D1 = i_data[1];
+    //assign D2 = i_data[2];
+    //assign D3 = i_data[3];
+    //assign D4 = i_data[4];
+    //assign D5 = i_data[5];
+    //assign D6 = i_data[6];
+    //assign D7 = i_data[7];
 
     //assign D0 = i_addr[0];
     //assign D1 = i_addr[1];
@@ -62,6 +62,42 @@ module blinky_soc (
     //assign D5 = i_addr[5];
     //assign D6 = i_addr[6];
     //assign D7 = i_addr[7];
+
+    //assign D0 = m_rd_data[0];
+    //assign D1 = m_rd_data[1];
+    //assign D2 = m_rd_data[2];
+    //assign D3 = m_rd_data[3];
+    //assign D4 = m_rd_data[4];
+    //assign D5 = m_rd_data[5];
+    //assign D6 = m_rd_data[6];
+    //assign D7 = m_rd_data[7];
+
+    assign D0 = REG1[0];
+    assign D1 = REG1[1];
+    assign D2 = REG1[2];
+    assign D3 = REG1[3];
+    assign D4 = REG1[4];
+    assign D5 = REG1[5];
+    assign D6 = REG1[6];
+    assign D7 = REG1[7];
+
+    //assign D0 = REG_WR_DATA[0];
+    //assign D1 = REG_WR_DATA[1];
+    //assign D2 = REG_WR_DATA[2];
+    //assign D3 = REG_WR_DATA[3];
+    //assign D4 = REG_WR_DATA[4];
+    //assign D5 = REG_WR_DATA[5];
+    //assign D6 = REG_WR_DATA[6];
+    //assign D7 = REG_WR_DATA[7];
+
+    //assign D0 = data_mem_addr[0];
+    //assign D1 = data_mem_addr[1];
+    //assign D2 = data_mem_addr[2];
+    //assign D3 = data_mem_addr[3];
+    //assign D4 = data_mem_addr[4];
+    //assign D5 = data_mem_addr[5];
+    //assign D6 = data_mem_addr[6];
+    //assign D7 = data_mem_addr[7];
 
     //===========power-on reset generation logic===============//
     reg[23:0] prim_reset_gen_cnt;
@@ -93,7 +129,7 @@ module blinky_soc (
     ///////////////////////////////////////////////////////////////////
 
 
-    wire cpu_clk = counter[20];
+    wire cpu_clk = counter[10];
 
     wire [7:0] i_data;
     wire [7:0] m_rd_data;
@@ -140,8 +176,8 @@ module blinky_soc (
         .addr(data_mem_addr),  //< i
         .rd_data(m_rd_data),  //> o
         .wr_data(m_wr_data),  //< i
-        .wr(m_en & m_wr),      //< i
-        .rd(m_en & m_rd),      //< i
+        .wr(m_wr),      //< i
+        .rd(m_rd),      //< i
     );
 
     //memory/io subsystem
@@ -152,14 +188,28 @@ module blinky_soc (
         .rd(1'b1),     //< i
     );
 
-    assign TEST1 = 0; //prim_rst_; 
-    assign TEST2 = 0; //system_reset_; 
-    assign TEST3 = 0; //cpu_clk; 
-    assign TEST4 = 0; //m_wr; 
+    assign TEST1 = prim_rst_; 
+    assign TEST2 = system_reset_;
+    assign TEST3 = cpu_clk;
+    assign TEST4 = m_rd;
 
+    wire [7:0] REG0;
+    wire [7:0] REG1;
+    wire [7:0] REG2;
+    wire [7:0] REG3;
+    wire [7:0] REG_WR_DATA;
+    wire [1:0] REG_WR_SEL;
+    wire [0:0] REG_WR_EN;
     //cpu instance
     noobs_cpu u_noobs_cpu(
         .clk(cpu_clk),                      //<i
+        .REG0(REG0),
+        .REG1(REG1),
+        .REG2(REG2),
+        .REG3(REG3),
+        .REG_WR_DATA(REG_WR_DATA),
+        .REG_WR_SEL(REG_WR_SEL),
+        .REG_WR_EN(REG_WR_EN),
         .reset_(system_reset_),         //<i
         .i_data(i_data),                //<i inst_mem_data
         .i_addr(i_addr),                //>o inst_mem_address

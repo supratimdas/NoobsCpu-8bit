@@ -51,9 +51,10 @@ push(@vlog_out, << "VLOG_END");
     input [7:0]     wr_data;
 VLOG_END
 }
+
 push(@vlog_out, << "VLOG_END");
 
-    SB_RAM40_4K #(
+    SB_RAM40_4KNR #(
 VLOG_END
 
 open(INPUT_FILE, "<${input_file}") or die "Unable to open file ${input_file}, $!";
@@ -122,7 +123,7 @@ VLOG_END
 push(@vlog_out, << "VLOG_END");
        .RDATA(rd_data),
         .RADDR(addr),
-        .RCLK(clk),
+        .RCLKN(clk),
         .RCLKE(1'b1),
         .RE(rd),
     );

@@ -1,4 +1,5 @@
 `define SYNTHESIS
+`define SYNTHESIS_DEBUG
 `include "../vmodel/noobs_cpu_defines.vh"
 `include "../vmodel/execute.v"
 `include "../vmodel/idecode.v"
