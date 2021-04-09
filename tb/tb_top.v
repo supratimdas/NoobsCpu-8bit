@@ -2,7 +2,7 @@
 * File Name     : tb_top.v
 * Organization  : NONE
 * Creation Date : 02-01-2021
-* Last Modified : Thursday 18 February 2021 06:13:31 PM IST
+* Last Modified : Friday 09 April 2021 08:03:34 PM
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 
@@ -270,7 +270,7 @@ module tb_top;
     //data memory instance
 
     data_mem u_data_mem (
-                            .clk(dut_clk),
+                            .clk(clk),
                             .data(m_data),
                             .addr(m_addr),
                             .rd(m_rd),
@@ -282,7 +282,7 @@ module tb_top;
 
     //program memory instance
     data_mem u_inst_mem (
-                            .clk(dut_clk),
+                            .clk(clk),
                             .data(i_data),
                             .addr(i_addr),
                             .rd(i_rd),

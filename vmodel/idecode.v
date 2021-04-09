@@ -3,7 +3,7 @@
 * Description   :
 * Organization  : NONE 
 * Creation Date : 11-05-2019
-* Last Modified : Thursday 08 April 2021 05:06:32 PM
+* Last Modified : Friday 09 April 2021 06:45:07 PM
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -559,7 +559,7 @@ module idecode (
 
 
     //assertions
-    `ASSERT_NEVER("Unimplemeneted or Illegal Instruction error", u_assert_never_1, clk,unimplemented_err) 
-    `ASSERT_NEVER("Fatal error", u_assert_never_2, clk,fatal_err) 
+    `ASSERT_NEVER("Unimplemeneted or Illegal Instruction error", u_assert_never_1, clk, reset_, unimplemented_err) 
+    `ASSERT_NEVER("Fatal error", u_assert_never_2, clk, reset_, fatal_err) 
 
 endmodule

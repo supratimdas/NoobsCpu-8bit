@@ -3,7 +3,7 @@
 * Description   : execute unit
 * Organization  : NONE 
 * Creation Date : 07-03-2020
-* Last Modified : Thursday 08 April 2021 05:13:11 PM
+* Last Modified : Friday 09 April 2021 08:08:59 PM
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -250,17 +250,34 @@ module execute(
     wire restore_ret_addr_lower;
     assign restore_ret_addr_lower = ((exec_ctrl[3:0] == `CPU_OPERATION_RET) & execute_en);
     assign restore_ret_addr_upper = ((exec_ctrl_1D[3:0] == `CPU_OPERATION_RET) & execute_en_1D);
-    assign d_mem_rd = ((exec_ctrl_1D[3:0] == `MEM_OPERATION_RD) & execute_en_1D) || restore_ret_addr_upper || restore_ret_addr_lower;
-    assign d_mem_wr = ((exec_ctrl_1D[3:0] == `MEM_OPERATION_WR) & execute_en_1D) || store_ret_addr_lower || store_ret_addr_upper;
-    assign d_mem_en = (d_mem_wr || d_mem_rd) & (execute_en_1D || store_ret_addr_lower || store_ret_addr_upper || restore_ret_addr_upper || restore_ret_addr_lower) & (d_mem_addr >= 12'h008);
+    assign d_mem_rd = !memory_mapped_reg_access & (((exec_ctrl_1D[3:0] == `MEM_OPERATION_RD) & execute_en_1D) || restore_ret_addr_upper || restore_ret_addr_lower);
+    assign d_mem_wr = !memory_mapped_reg_access & (((exec_ctrl_1D[3:0] == `MEM_OPERATION_WR) & execute_en_1D) || store_ret_addr_lower || store_ret_addr_upper);
+    assign d_mem_en = (d_mem_wr || d_mem_rd);
+
+    `ASSERT_NO_X("control signal d_mem_wr cannot be x", u_assert_no_x1, clk, reset_, d_mem_wr)
+    `ASSERT_NO_X("control signal d_mem_rd cannot be x", u_assert_no_x2, clk, reset_, d_mem_rd)
+    `ASSERT_NO_X("control signal d_mem_en cannot be x", u_assert_no_x3, clk, reset_, d_mem_en)
 
     assign d_mem_data_out[7:0] = (store_ret_addr_lower) ? ret_addr0 : ((store_ret_addr_upper) ? ret_addr1  : src0_data);
 
     assign stack_addr = (store_ret_addr_lower|store_ret_addr_upper) ? {1'b0, sp_msb_10_8, sp_lsb_7_0} : ({1'b0, sp_msb_10_8, sp_lsb_7_0} - 1);
-    assign indirect_addr = dst_addr + reg3;
-    assign d_mem_addr = (store_ret_addr_lower|store_ret_addr_upper|restore_ret_addr_upper|restore_ret_addr_lower) ? (stack_addr) : ((cr & `CR_ADR_MODE) ? indirect_addr : dst_addr);
+    
+    reg [11:0] dst_addr_q;
+    always @(posedge clk) begin
+        if(d_mem_en) begin
+            dst_addr_q[11:0] <= dst_addr[11:0];
+        end
+    end
+
+    wire [11:0] dst_d_mem_addr;
+    //assign dst_d_mem_addr[11:0] =(d_mem_wr|d_mem_rd) ? dst_addr : dst_addr_q;
+    assign dst_d_mem_addr[11:0] =(d_mem_en) ? dst_addr : dst_addr_q;
+
+    assign indirect_addr = dst_d_mem_addr + reg3;
+    assign d_mem_addr = (store_ret_addr_lower|store_ret_addr_upper|restore_ret_addr_upper|restore_ret_addr_lower) ? (stack_addr) : ((cr & `CR_ADR_MODE) ? indirect_addr : dst_d_mem_addr);
 
     //actual operation based on the encoded exec_ctrl info
+    reg memory_mapped_reg_access;
     always @(*) begin
         reg_wr_data = 8'd0;
         reg_wr_en   = 1'b0;
@@ -273,6 +290,7 @@ module execute(
         cr_update_en = 1'b0;
         sp_lsb_7_0_update = 0;
         indirect_reg_wr_access = 1'b0;
+        memory_mapped_reg_access = 1'b0;
         if(execute_en_1D) begin
             case(exec_ctrl_1D[3:0])
                 `EXEC_NOP : begin
@@ -332,15 +350,42 @@ module execute(
                 end
                 `MEM_OPERATION_RD : begin
                     case(dst_addr)
-                        12'h000: reg_wr_data = reg0;
-                        12'h001: reg_wr_data = reg1;
-                        12'h002: reg_wr_data = reg2;
-                        12'h003: reg_wr_data = reg3;
-                        12'h004: reg_wr_data = cr;
-                        12'h005: reg_wr_data = sr;
-                        12'h006: reg_wr_data = sp_lsb_7_0;
-                        12'h007: reg_wr_data = d_mem_data_in; //TODO: illegal access error
-                        default: reg_wr_data = d_mem_data_in;
+                        12'h000: begin 
+                            memory_mapped_reg_access = 1; 
+                            reg_wr_data = reg0;
+                        end
+                        12'h001: begin 
+                            memory_mapped_reg_access = 1; 
+                            reg_wr_data = reg1;
+                        end
+                        12'h002: begin 
+                            memory_mapped_reg_access = 1; 
+                            reg_wr_data = reg2;
+                        end
+                        12'h003: begin 
+                            memory_mapped_reg_access = 1; 
+                            reg_wr_data = reg3;
+                        end
+                        12'h004: begin 
+                            memory_mapped_reg_access = 1; 
+                            reg_wr_data = cr;
+                        end
+                        12'h005: begin 
+                            memory_mapped_reg_access = 1; 
+                            reg_wr_data = sr;
+                        end
+                        12'h006: begin 
+                            memory_mapped_reg_access = 1; 
+                            reg_wr_data = sp_lsb_7_0;
+                        end
+                        12'h007: begin 
+                            memory_mapped_reg_access = 1; 
+                            reg_wr_data = d_mem_data_in; //TODO: illegal access error
+                        end
+                        default: begin 
+                            memory_mapped_reg_access = 0; 
+                            reg_wr_data = d_mem_data_in;
+                        end
                     endcase
                     reg_wr_en = 1;
 `ifndef SYNTHESIS
@@ -359,12 +404,21 @@ module execute(
                             reg_wr_data = d_mem_data_out; 
                             reg_wr_en = 1; 
                             indirect_reg_wr_access = 1;
+                            memory_mapped_reg_access = 1;
                         end
                         12'h004: begin
-                            cr_update = d_mem_data_out; cr_update_en = 1;
+                            cr_update = d_mem_data_out; 
+                            cr_update_en = 1;
+                            memory_mapped_reg_access = 1;
                         end
-                        12'h005: sr_next = sr;
-                        12'h006: sp_lsb_7_0_update = 1;
+                        12'h005: begin
+                            sr_next = sr;
+                            memory_mapped_reg_access = 1;
+                        end
+                        12'h006: begin 
+                            sp_lsb_7_0_update = 1;
+                            memory_mapped_reg_access = 1;
+                        end
                     endcase
 
 `ifndef SYNTHESIS

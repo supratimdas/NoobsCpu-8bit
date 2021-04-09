@@ -3,7 +3,7 @@
 * Description   : toplevel file
 * Organization  : NONE 
 * Creation Date : 05-03-2020
-* Last Modified : Thursday 08 April 2021 04:25:40 PM
+* Last Modified : Friday 09 April 2021 06:45:28 PM
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -19,7 +19,12 @@
 module noobs_cpu (
     clk,            //<i
     reset_,         //<i
-    
+`ifdef SYNTHESIS_DEBUG
+    REG0,   //> o
+    REG1,   //> o
+    REG2,   //> o
+    REG3,   //> o
+`endif
     i_data,         //<i inst_mem_data
     i_addr,         //>o inst_mem_address
 
@@ -45,6 +50,17 @@ module noobs_cpu (
     output          m_rd;
     output          m_wr;
     output          m_en;
+`ifdef SYNTHESIS_DEBUG
+    output [7:0] REG0;   //> o
+    output [7:0] REG1;   //> o
+    output [7:0] REG2;   //> o
+    output [7:0] REG3;   //> o
+
+    assign REG0 = reg0;
+    assign REG1 = reg1;
+    assign REG2 = reg2;
+    assign REG3 = reg3;
+`endif
 
     //wires
     wire            pc_branch;
@@ -231,5 +247,5 @@ module noobs_cpu (
 
     wire data_memory_access_error;
     assign data_memory_access_error = m_en & m_wr & m_rd;
-    `ASSERT_NEVER("data_mem rd and wr can never be set simultaneosly", u_assert_never_1, clk, data_memory_access_error)
+    `ASSERT_NEVER("data_mem rd and wr can never be set simultaneosly", u_assert_never_1, clk, reset_, data_memory_access_error)
 endmodule

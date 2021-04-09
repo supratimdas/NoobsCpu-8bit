@@ -74,24 +74,24 @@
 
 `define OP_CODE_NOP 8'd0
 
-`define ASSERT_NEVER(MSG, INST, CLK, EXPR) \
+`define ASSERT_NEVER(MSG, INST, CLK, RST, EXPR) \
 `ifndef SYNTHESIS \
-    assert_never #(MSG) INST (CLK, EXPR);  \
+    assert_never #(MSG) INST (CLK, RST, EXPR);  \
 `endif \
 
-`define ASSERT_ALWAYS(MSG, INST, CLK, EXPR) \
+`define ASSERT_ALWAYS(MSG, INST, CLK, RST, EXPR) \
 `ifndef SYNTHESIS \
-    assert_always #(MSG) INST (CLK, EXPR);  \
+    assert_always #(MSG) INST (CLK, RST, EXPR);  \
 `endif \
 
-`define ASSERT_IMPL(MSG, INST, CLK, ANT_EXPR, CONS_EXPR) \
+`define ASSERT_IMPL(MSG, INST, CLK, RST, ANT_EXPR, CONS_EXPR) \
 `ifndef SYNTHESIS \
-    assert_impl #(MSG) INST (CLK, ANT_EXPR, CONS_EXPR);  \
+    assert_impl #(MSG) INST (CLK, RST, ANT_EXPR, CONS_EXPR);  \
 `endif \
 
-`define ASSERT_NO_X(MSG, INST, CLK, EXPR) \
+`define ASSERT_NO_X(MSG, INST, CLK, RST, EXPR) \
 `ifndef SYNTHESIS \
-    assert_no_x #(MSG) INST (CLK, EXPR);  \
+    assert_no_x #(MSG) INST (CLK, RST, EXPR);  \
 `endif \
 
 
