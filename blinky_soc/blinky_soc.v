@@ -1,10 +1,14 @@
 /*
 * A simple SoC implementation
 * using NoobsCPU core. it has
-* a single led as IO, and we
-* use a program to constantly
-* blink the led.
+* a single led as IO (ADDRESS:0x100)
+*, and we use a program to constantly
+* blink the led, and an UART TX module
+* (ADDRESS:0x101) for text output
 */
+
+`define LED_M_ADDR 11'd100
+`define UART_TX_M_ADDR 11'd101
 
 module blinky_soc (
     clk,
@@ -72,14 +76,14 @@ module blinky_soc (
     //assign D6 = m_rd_data[6];
     //assign D7 = m_rd_data[7];
 
-    assign D0 = REG3[0];
-    assign D1 = REG3[1];
-    assign D2 = REG3[2];
-    assign D3 = REG3[3];
-    assign D4 = REG3[4];
-    assign D5 = REG3[5];
-    assign D6 = REG3[6];
-    assign D7 = REG3[7];
+    //assign D0 = REG3[0];
+    //assign D1 = REG3[1];
+    //assign D2 = REG3[2];
+    //assign D3 = REG3[3];
+    //assign D4 = REG3[4];
+    //assign D5 = REG3[5];
+    //assign D6 = REG3[6];
+    //assign D7 = REG3[7];
 
     //assign D0 = REG_WR_DATA[0];
     //assign D1 = REG_WR_DATA[1];
@@ -98,6 +102,16 @@ module blinky_soc (
     //assign D5 = data_mem_addr[5];
     //assign D6 = data_mem_addr[6];
     //assign D7 = data_mem_addr[7];
+
+
+    assign D0 = tx;
+    assign D1 = tx;
+    assign D2 = 0;//tx_data_out[2];
+    assign D3 = 0;//tx_data_out[3];
+    assign D4 = 0;//tx_data_out[4];
+    assign D5 = 0;//tx_data_out[5];
+    assign D6 = 0;//tx_data_out[6];
+    assign D7 = 0;//tx_data_out[7];
 
     //===========power-on reset generation logic===============//
     reg[23:0] prim_reset_gen_cnt;
@@ -129,7 +143,7 @@ module blinky_soc (
     ///////////////////////////////////////////////////////////////////
 
 
-    wire cpu_clk = counter[1];
+    wire cpu_clk =  clk; //counter[1];
 
     wire [7:0] i_data;
     wire [7:0] m_rd_data;
@@ -147,7 +161,7 @@ module blinky_soc (
     assign data_mem_addr = (m_addr - 8);
 
 
-
+    ////////////////////////GPIO//////////////////////
     reg led_out;
     reg led_out_next;
 
@@ -161,7 +175,7 @@ module blinky_soc (
     end
 
     always @(*) begin
-        if((m_addr == 11'd15) && m_wr & m_en) begin
+        if((m_addr == `LED_M_ADDR) && m_wr & m_en) begin
             led_out_next = |m_wr_data;
         end
         else begin
@@ -170,6 +184,90 @@ module blinky_soc (
     end
 
     assign LED = led_out;
+    ///////////////////////////////////////////////////
+
+    ///////////////////////UART////////////////////////
+    wire clk50m;
+    wire txclk_en;
+    wire tx;
+
+    pll u_pll(
+	    .clock_in(clk),
+	    .clock_out(clk50m),
+	    .locked()
+	);
+
+    baud_rate_gen u_br_gen(
+        .clk_50m(clk50m),
+		.rxclk_en(),
+		.txclk_en(txclk_en)
+    );
+
+    reg [7:0] tx_data_out;
+    reg [7:0] tx_data_out_next;
+
+    reg tx_data_wr;
+    reg tx_data_wr_next;
+    always @(posedge cpu_clk) begin
+        if(!system_reset_) begin
+            tx_data_out <= 8'd0;
+            tx_data_wr  <= 1'b0;
+        end
+        else begin
+            tx_data_out <= tx_data_out_next;
+            tx_data_wr  <= tx_data_wr_next;
+        end
+    end
+
+    always @(*) begin
+        if((m_addr == `UART_TX_M_ADDR) && m_wr & m_en) begin
+            tx_data_out_next = m_wr_data;
+            tx_data_wr_next = 1'b1;
+        end
+        else begin
+            tx_data_out_next = tx_data_out;
+            tx_data_wr_next = 1'b0;
+        end
+    end
+
+    reg tx_wr;
+    reg tx_wr_q;
+    always @(posedge clk50m) begin
+        if(!system_reset_) begin
+            tx_wr   <= 1'b0;
+            tx_wr_q <= 1'b0;
+        end
+        else begin
+            tx_wr     <= tx_data_wr;
+            tx_wr_q   <= tx_wr;
+        end
+    end
+
+    wire wr_en;
+    assign wr_en = tx_wr & (tx_wr ^ tx_wr_q);
+
+    wire tx_busy;
+
+    wire [7:0] cpu_rd_data;
+    always @(*) begin
+        if((m_addr == `UART_TX_M_ADDR) & m_rd & m_en) begin
+            cpu_rd_data = {7'd0,tx_busy};
+        end
+        else begin
+            cpu_rd_data = m_rd_data;
+        end
+    end
+
+    transmitter u_tx(
+           .din(tx_data_out),
+		   .wr_en(wr_en),
+		   .clk_50m(clk50m),
+		   .clken(txclk_en),
+		   .tx(tx),
+		   .tx_busy(tx_busy)
+     );
+     ////////////////////////////////////////////////////
+
 
     data_mem u_data_mem (
         .clk(cpu_clk),      //< i
@@ -190,8 +288,8 @@ module blinky_soc (
 
     assign TEST1 = prim_rst_; 
     assign TEST2 = system_reset_;
-    assign TEST3 = cpu_clk;
-    assign TEST4 = m_rd;
+    assign TEST3 = 0;//cpu_clk;
+    assign TEST4 = 0;//m_rd;
 
     wire [7:0] REG0;
     wire [7:0] REG1;
@@ -216,7 +314,7 @@ module blinky_soc (
         .i_data(i_data),                //<i inst_mem_data
         .i_addr(i_addr),                //>o inst_mem_address
         .m_wr_data(m_wr_data),             //>o  data_mem_data wr_data
-        .m_rd_data(m_rd_data),             //<i  data_mem_data rd_data
+        .m_rd_data(cpu_rd_data),             //<i  data_mem_data rd_data
         .m_addr(m_addr),                //>o  data_mem_addr
         .m_rd(m_rd),                    //>o  data_mem_rd enable
         .m_wr(m_wr),                    //>o  data_mem_wr enable

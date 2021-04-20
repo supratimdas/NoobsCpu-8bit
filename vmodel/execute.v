@@ -3,7 +3,7 @@
 * Description   : execute unit
 * Organization  : NONE 
 * Creation Date : 07-03-2020
-* Last Modified : Friday 09 April 2021 08:08:59 PM
+* Last Modified : Tuesday 20 April 2021 10:43:32 AM
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -14,14 +14,14 @@ module execute(
     cycle_counter,  //<i
     print_en,       //<i //for enabling prints
     latch_ret_addr, //<i //latching return address    
-    sp_msb_10_8,    //>i    //stack pointer msb 10-8
-    reg0,           //<i
-    reg1,           //<i
-    reg2,           //<i
-    reg3,           //<i
-    cr,             //<i
-    cr_update,      //>o
-    cr_update_en,   //>o
+    sp_msb_10_8,    //>i //stack pointer msb 10-8
+    reg0,           //<i //register_0 input from register_file 
+    reg1,           //<i //register_1 input from register_file
+    reg2,           //<i //register_2 input from register_file
+    reg3,           //<i //register_3 input from register_file
+    cr,             //<i //control_register
+    cr_update,      //>o //control_register update value 
+    cr_update_en,   //>o //control_register update_en
 
 
     next_addr,      //<i
@@ -44,9 +44,9 @@ module execute(
     d_mem_rd,       //>o
     d_mem_wr,       //>o
 
-    pc_branch,      //>o
+    pc_branch,      //>o    //program_counter branch
     ret_addr,       //>o    //return address
-    ret_addr_en,    //>o
+    ret_addr_en,    //>o    //
 
     status_reg      //>o
 );
@@ -145,25 +145,23 @@ module execute(
 
     assign status_reg = sr_next;
 
+`ifndef SYNTHESIS
     always @(*) begin
         if(execute_en) begin
             case(exec_ctrl[3:0]) 
                 `CPU_OPERATION_JMP : begin
-`ifndef SYNTHESIS
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {CPU_OPERATION_JMP: STATUS_REGISTER = %02x} ",cycle_counter, sr_next);
-`endif
                 end
                 `CPU_OPERATION_CALL : begin
-`ifndef SYNTHESIS
                     if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {CPU_OPERATION_CALL: STATUS_REGISTER = %02x} ",cycle_counter, sr_next);
-`endif
                 end
             endcase
         end
     end
+`endif
 
 
-    //save return address
+    //store/restore return address during subroutine call
     always @(posedge clk) begin
         if(!reset_) begin
             store_ret_addr_upper <= 1'b0;
