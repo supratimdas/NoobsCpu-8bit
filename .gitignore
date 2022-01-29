@@ -1,0 +1,8 @@
+*.log
+*.txt
+*.lxt
+*.asc
+*.bin
+*.blif
+blinky_soc/data_mem.v
+blinky_soc/inst_mem.v
