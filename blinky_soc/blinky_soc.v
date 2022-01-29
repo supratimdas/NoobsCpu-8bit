@@ -106,12 +106,12 @@ module blinky_soc (
 
     assign D0 = tx;
     assign D1 = tx;
-    assign D2 = 0;//tx_data_out[2];
-    assign D3 = 0;//tx_data_out[3];
-    assign D4 = 0;//tx_data_out[4];
-    assign D5 = 0;//tx_data_out[5];
-    assign D6 = 0;//tx_data_out[6];
-    assign D7 = 0;//tx_data_out[7];
+    assign D2 = led_out;//tx_data_out[2];
+    assign D3 = led_out;//tx_data_out[3];
+    assign D4 = led_out;//tx_data_out[4];
+    assign D5 = led_out;//tx_data_out[5];
+    assign D6 = clk;//tx_data_out[6];
+    assign D7 = clk;//tx_data_out[7];
 
     //===========power-on reset generation logic===============//
     reg[23:0] prim_reset_gen_cnt;
