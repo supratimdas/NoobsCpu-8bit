@@ -1,6 +1,9 @@
 # NoobsCpu-8bit
-# This is a simple TOY (barebones) 8bit cpu architecture for fun as a side project
-# Intent was to capture the entire frontend Design+Verif flow for educational purpose
+![Alt text](NoobsCPU.png?raw=true "NoobsCPU")
+
+## This is a simple TOY (barebones) 8bit cpu architecture for fun as a side project
+## Intent was to capture the entire frontend Design+Verif flow for educational purpose
+
 <pre>
 this has a complete c-model/v-model/assembler/synthesis scripts for ice40 fpga
 
@@ -37,11 +40,17 @@ Ensure you have the following installed in your system:
 </pre>
 
 # Basic Highlights
-# 1. 8 bit data path
-# 2. 3 stage pipeline
-# 3. Harvard Architecure (Separate Inst/Data memory)
-# 4. 2 KB addressable Instruction/Data Memory
-# 5. 4 General purpose registers
-# 6. Support for Direct/Indirect addressing modes
-# 7. Memory mapped IO
-# 8. has 8 user-configurable reserved opcodes (Can be used as a great teaching tool to implement interesting operations)
+## > 8 bit data path
+## > 3 stage pipeline
+## > Harvard Architecure (Separate Inst/Data memory)
+## > 2 KB addressable Instruction/Data Memory
+## > 4 General purpose registers
+## > Support for Direct/Indirect addressing modes
+## > Memory mapped IO
+## > has 8 user-configurable reserved opcodes (Can be used as a great teaching tool to implement interesting operations)
+
+# Running Test Suite
+![Alt text](gifs/running_test_suite.gif?raw=true "NoobsCPU_tests")
+
+# Hello World over UART in FPGA
+![Alt text](gifs/blinky_soc_programming.gif?raw=true "NoobsCPU_hello_world")
