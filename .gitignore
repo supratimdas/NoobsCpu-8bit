@@ -4,5 +4,10 @@
 *.asc
 *.bin
 *.blif
+*.vcd
+*.out
+*.swp
+*.swo
+noobsCpu
 blinky_soc/data_mem.v
 blinky_soc/inst_mem.v
