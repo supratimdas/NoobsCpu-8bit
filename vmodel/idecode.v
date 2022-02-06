@@ -3,7 +3,7 @@
 * Description   :
 * Organization  : NONE 
 * Creation Date : 11-05-2019
-* Last Modified : Friday 09 April 2021 06:45:07 PM
+* Last Modified : Sunday 06 February 2022 04:58:33 PM
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -115,7 +115,7 @@ module idecode (
     //wires
     wire [7:0] curr_inst;
 
-    assign curr_inst = func_ret ? `OP_CODE_NOP : inst_i;
+    assign curr_inst = (ret_op_restore_ongoing | ret_op_restore_ongoing_q | ret_op_restore_ongoing_qq | ~idecode_en) ? `OP_CODE_NOP : inst_i;
 
     assign sp_msb_10_8[2:0] = cr[4:2]; //as per control register map
 
@@ -144,6 +144,19 @@ module idecode (
 
     wire ret_op_restore_ongoing;
     assign ret_op_restore_ongoing = func_ret || func_ret_q;
+
+    reg ret_op_restore_ongoing_q;
+    reg ret_op_restore_ongoing_qq;
+    always @(posedge clk) begin
+        if(!reset_) begin
+            ret_op_restore_ongoing_q   <= 1'b0;
+            ret_op_restore_ongoing_qq  <= 1'b0;
+        end
+        else begin
+            ret_op_restore_ongoing_q   <= ret_op_restore_ongoing;
+            ret_op_restore_ongoing_qq  <= ret_op_restore_ongoing_q;
+        end
+    end
 
     //retimer
     always @(posedge clk) begin

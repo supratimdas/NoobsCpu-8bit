@@ -15,7 +15,13 @@
 FOREVER:    STORE   R0,100     ##led IO address is at 100
             XORI    R0,R0,0xff  ##invert R0 value
             CALL    DELAY_4X
+            CALL    DELAY_4X
+            CALL    DELAY_4X
+            CALL    DELAY_4X
             CALL    PRINT_HELLO_WORLD
+            CALL    DELAY_4X
+            CALL    DELAY_4X
+            CALL    DELAY_4X
             CALL    DELAY_4X
             JMPNC   FOREVER
 

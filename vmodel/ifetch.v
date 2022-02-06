@@ -3,7 +3,7 @@
 * Description   : instruction fetch unit
 * Organization  : NONE 
 * Creation Date : 11-05-2019
-* Last Modified : Saturday 30 January 2021 09:40:03 PM IST
+* Last Modified : Sunday 06 February 2022 04:49:03 PM
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
@@ -11,6 +11,7 @@
 //Short summary:
 //this module implements the instruction fetch logic.
 //this has the program_counter implementation
+`include "noobs_cpu_defines.vh"
 
 module ifetch(
     clk,        //< i

@@ -2,7 +2,7 @@
 * File Name     : tb_top.v
 * Organization  : NONE
 * Creation Date : 02-01-2021
-* Last Modified : Tuesday 20 April 2021 04:05:06 PM
+* Last Modified : Sunday 06 February 2022 05:03:03 PM
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 
@@ -29,6 +29,7 @@
 
 
 `define MAX_MEM_LIMIT 12'd2048
+`define MAX_SIM_CYCLES 50000
 
 `define RESET_ASSERT_DURATION 50
 `define DATA_MEM_INPUT_FILE "data.txt"
@@ -119,6 +120,12 @@ module tb_top;
             if(clk == 1)
                 cycle_count=cycle_count + 1;
         end
+    end
+
+    always begin
+        wait(cycle_count == `MAX_SIM_CYCLES);
+        $display("Max Sim Cycles reached... ending test");
+        $finish;
     end
 
 
