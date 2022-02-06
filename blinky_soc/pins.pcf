@@ -1,17 +1,83 @@
+# -- Icestick leds map
+#
+#           99
+#        96 85 98
+#           97
+#
+# --    96-99: Red leds
+# --    95: green led
+
+
+
 set_io clk  21
 set_io LED  95
 
-set_io TEST1 99  
-set_io TEST2 98 
-set_io TEST3 97 
-set_io TEST4 96 
 
+### ------------ IrDA ----------------------------------------------------------
+##set_io --warn-no-port IrDA_TX 105
+##set_io --warn-no-port IrDA_RX 106
+##
+###-- SD = 0, enable IrDA
+##set_io --warn-no-port SD 107
 
-set_io --warn-no-port D0 91
-set_io --warn-no-port D1 90
-set_io --warn-no-port D2 88
-set_io --warn-no-port D3 87
-set_io --warn-no-port D4 78
-set_io --warn-no-port D5 79
-set_io --warn-no-port D6 80
-set_io --warn-no-port D7 81
+# ------------ PMOD connector ------------------------------------------------
+#
+#   Pmod standar numeration (Oriented according the icestick, with the
+#               usb connector pointing to the left and IRda to the right)
+#
+#      --------
+#     |  12  6 |
+#     |  11  5 |
+#     |  10  4 |
+#     |  9   3 |
+#     |  8   2 |
+#     |  7   1 | <
+#      --------
+#
+#   FPGA pins:
+#
+#     ----------
+#    | 3V3  3V3 |
+#    | GND  GND |
+#    | 91    81 |
+#    | 90    80 |
+#    | 88    79 |
+#    | 87    78 | <
+#     ----------
+#
+
+set_io uart_tx  91
+
+# ------------------------ EXPANSION I/O ------------------------------------
+#
+# -- Numeration
+#
+#  Top Row (TR):
+#                                       v
+#          --------------------------------
+#         |  10  9  8  7  6  5 4  3  2  1  |
+#          --------------------------------
+#
+#  Bottom Row (BR):
+#
+#                                       v
+#          --------------------------------
+#         |  10  9  8  7  6  5 4  3  2  1  |
+#          --------------------------------
+#
+# --- FPGA pins
+#
+#  Top Row (TR)
+#                                                       v
+#        --------------------------------------------------
+#       | 119  118  117  116  115  114  113  112  GND  3v3 |
+#        --------------------------------------------------
+#
+#
+#  Bottom Row (BR)
+#
+#                                                       v
+#         -------------------------------------------------
+#        | 44   45   47   48   56   60   61   62  GND  3v3 |
+#         -------------------------------------------------
+#

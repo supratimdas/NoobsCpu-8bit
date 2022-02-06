@@ -13,10 +13,12 @@
 module blinky_soc (
     clk,
     LED,
+    uart_tx
 );
     //IOs
     input   clk;
     output  LED;
+    output  uart_tx;
 
     reg [25:0] counter;
     always @(posedge clk) begin
@@ -101,6 +103,7 @@ module blinky_soc (
     wire clk50m;
     wire txclk_en;
     wire tx;
+    assign uart_tx = tx;
 
     pll u_pll(
 	    .clock_in(clk),
@@ -190,7 +193,7 @@ module blinky_soc (
     );
 
     //memory/io subsystem
-    `define _BLINKY_ROM_
+    //`define _BLINKY_ROM_
     `ifdef _BLINKY_ROM_
     rom_blinky u_inst_mem (
         .addr(i_addr), //< i
