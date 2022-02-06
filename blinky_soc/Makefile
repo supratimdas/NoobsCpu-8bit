@@ -15,7 +15,7 @@ YOSYS_LOG  = synth.log
 
 YOSYS_ARGS = -v3 -l $(YOSYS_LOG) 
 
-VERILOG_SRCS = blinky_soc.v noobs_vlib.v data_mem.v inst_mem.v pll.v baud_rate_gen.v transmitter.v rom_blinky.v
+VERILOG_SRCS = blinky_soc.v noobs_vlib.v data_mem.v inst_mem.v pll.v baud_rate_gen.v transmitter.v rom_blinky.v rom_blinky_hello_world.v
 
 BIN_FILE  = $(TARGET_STEM).bin
 ASC_FILE  = $(TARGET_STEM).asc

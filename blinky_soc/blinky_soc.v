@@ -193,9 +193,9 @@ module blinky_soc (
     );
 
     //memory/io subsystem
-    //`define _BLINKY_ROM_
+    `define _BLINKY_ROM_
     `ifdef _BLINKY_ROM_
-    rom_blinky u_inst_mem (
+    rom_blinky_hello_world u_inst_mem (
         .addr(i_addr), //< i
         .data(i_data), //< io >
     );
