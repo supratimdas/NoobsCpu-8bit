@@ -9,6 +9,7 @@
 
 #include "NoobsCpu_Util.h"
 #include "NoobsCpu_defines.h"
+#include "data_memory_share.h" //this is used for sharing data memory in host, so that other subprocess can read/write from it, to test full system
 
 
 uint8_t     instruction;    //instruction
@@ -547,6 +548,8 @@ int main(int argc, char** argv){
     noobs_cpu_init();
     printf("CPU initialized\n");
 
+    init_shared_memory();
+
     //3 stage basic pipeline
     while(!halted){
         debug_printf("\nExecution Cycle : %05d ::>",cycle_counter);
@@ -555,8 +558,11 @@ int main(int argc, char** argv){
         ifetch();
         debug_printf(",[SP=0x%03x * PC=0x%03x * SR=0x%02x * CR=0x%02x] ",sp,pc,sr,cr);
         cycle_counter++;
+	update_shared_memory(data_mem);
     }
 
+    deinit_shared_memory();
+    
     printf("\nExecution Halted at cycle : %05d. PC: %04d",cycle_counter,pc);
 
     store_data();
