@@ -14,8 +14,10 @@ $OP_CODE_HASH{CLR_BC}       = 0b000_00_101;
 $OP_CODE_HASH{SET_ADR_MODE} = 0b000_00_110;
 $OP_CODE_HASH{RST_ADR_MODE} = 0b000_00_111;
 $OP_CODE_HASH{CALL}     = 0b000_11_000;
-#$OP_CODE_HASH{CALLZ}    = 0b000_11_000;
-#$OP_CODE_HASH{CALLNZ}   = 0b000_11_000;
+$OP_CODE_HASH{CALLZ}    = 0b000_11_000;
+$OP_CODE_HASH{CALLNZ}   = 0b000_11_000;
+$OP_CODE_HASH{CALLOVF}  = 0b000_11_000;
+$OP_CODE_HASH{CALLNC}  = 0b000_11_000;
 $OP_CODE_HASH{JMP}      = 0b000_10_000;
 $OP_CODE_HASH{JMPNC}    = 0b000_10_000;
 $OP_CODE_HASH{JMPZ}     = 0b000_10_000;
@@ -132,13 +134,13 @@ while (<ASM>) {
                 $code_index++;
                 $code_index++;
             }elsif($OPCODE =~ /(JMP|CALL|LOAD|STORE)/) {    #address based ops also immediate
-                if($OPCODE =~ /(JMPZ)/) {
+                if($OPCODE =~ /(JMPZ|CALLZ)/) {
                     $code_index++;
                     $code_index++;
-                }elsif($OPCODE =~ /(JMPNZ)/){
+                }elsif($OPCODE =~ /(JMPNZ|CALLNZ)/){
                     $code_index++;
                     $code_index++;
-                }elsif($OPCODE =~ /(JMPOVF)/){
+                }elsif($OPCODE =~ /(JMPOVF|CALLOVF)/){
                     $code_index++;
                     $code_index++;
                     $code_index++;
@@ -210,17 +212,17 @@ while (<ASM>) {
                 $code_mem[$code_index++] = $OP_CODE_HASH{$OPCODE} | $dst_reg | $src_reg;
                 $code_mem[$code_index++] = to_int($ARGLIST[2]);
             }elsif($OPCODE =~ /(JMP|CALL|LOAD|STORE)/) {    #address based ops also immediate
-                if($OPCODE =~ /JMPZ/) {
+                if($OPCODE =~ /(JMPZ|CALLZ)/) {
                     $code_mem[$code_index++] = $OP_CODE_HASH{CLR_BC};
                     $code_mem[$code_index++] = $OP_CODE_HASH{SET_BCZ};
-                }elsif($OPCODE =~ /JMPNZ/){
+                }elsif($OPCODE =~ /(JMPNZ|CALLNZ)/){
                     $code_mem[$code_index++] = $OP_CODE_HASH{CLR_BC};
                     $code_mem[$code_index++] = $OP_CODE_HASH{SET_BCNZ};
-                }elsif($OPCODE =~ /JMPOVF/) {
+                }elsif($OPCODE =~ /(JMPOVF|CALLOVF)/) {
                     $code_mem[$code_index++] = $OP_CODE_HASH{CLR_BC};
                     $code_mem[$code_index++] = $OP_CODE_HASH{SET_BCNZ};
                     $code_mem[$code_index++] = $OP_CODE_HASH{SET_BCZ};
-                }elsif($OPCODE =~ /JMPNC/) {
+                }elsif($OPCODE =~ /(JMPNC|CALLNC)/) {
                     $code_mem[$code_index++] = $OP_CODE_HASH{CLR_BC};
                 }
                 my $address = 0;

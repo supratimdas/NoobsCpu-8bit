@@ -17,6 +17,7 @@ INNER_LOOP: LOAD R3, TMP_REG3
             ADDI R3,R3,1
             LOAD R1, ARRAY
             RST_ADR_MODE
+            CLR_BC
             CALL SORT_N_STORE
             STORE R3,TMP_REG3
             SUBI  R3,R3,8

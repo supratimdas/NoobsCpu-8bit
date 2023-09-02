@@ -105,6 +105,13 @@ void update_status_regs(){
         case ALU_OPERATION_AND:
         case ALU_OPERATION_OR:
         case ALU_OPERATION_XOR:
+            if(exec_params.result & 0x00ff) {
+                sr = sr | SR_NZ;
+                sr = sr & ~SR_Z;
+            }else{
+                sr = sr | SR_Z;
+                sr = sr & ~SR_NZ;
+            }
             sr = sr & ~(SR_OVF);
             break;
 
@@ -264,12 +271,37 @@ void execute(){
                 break;
             case CPU_OPERATION_CALL :
                 //TODO: implement conditional call similar to branch op above
-                stack_addr = (((cr >> 2) & 0x07) << 8) | sp;
-                data_mem[stack_addr] = ((pc >> 8) & 0x07);
-                data_mem[stack_addr+1] = (pc & 0xff);
-                debug_printf("{CPU_OPERATION_CALL} return_addr: %02x, stack_addr = %02x ",pc,stack_addr);
-                pc = exec_params.address;
-                sp+=2;
+                if(((cr & (CR_BCZ|CR_BCNZ)) == (CR_BCZ|CR_BCNZ)) && (sr & SR_OVF)){  //branch if ovf
+                    stack_addr = (((cr >> 2) & 0x07) << 8) | sp;
+                    data_mem[stack_addr] = ((pc >> 8) & 0x07);
+                    data_mem[stack_addr+1] = (pc & 0xff);
+                    debug_printf("{CPU_OPERATION_CALLOVF} return_addr: %02x, stack_addr = %02x ",pc,stack_addr);
+                    pc = exec_params.address;
+                    sp+=2;
+                }else if((cr & CR_BCZ) && (sr & SR_Z) && !(cr & CR_BCNZ)){  //branch if zero
+                    stack_addr = (((cr >> 2) & 0x07) << 8) | sp;
+                    data_mem[stack_addr] = ((pc >> 8) & 0x07);
+                    data_mem[stack_addr+1] = (pc & 0xff);
+                    debug_printf("{CPU_OPERATION_CALLZ} return_addr: %02x, stack_addr = %02x ",pc,stack_addr);
+                    pc = exec_params.address;
+                    sp+=2;
+                }else if((cr & CR_BCNZ) && (sr & SR_NZ) && !(cr & CR_BCZ)){  //branch if not-zero
+                    stack_addr = (((cr >> 2) & 0x07) << 8) | sp;
+                    data_mem[stack_addr] = ((pc >> 8) & 0x07);
+                    data_mem[stack_addr+1] = (pc & 0xff);
+                    debug_printf("{CPU_OPERATION_CALLNZ} return_addr: %02x, stack_addr = %02x ",pc,stack_addr);
+                    pc = exec_params.address;
+                    sp+=2;
+                }else if(!(cr & (CR_BCZ|CR_BCNZ))){    //unconditionl branch
+                    stack_addr = (((cr >> 2) & 0x07) << 8) | sp;
+                    data_mem[stack_addr] = ((pc >> 8) & 0x07);
+                    data_mem[stack_addr+1] = (pc & 0xff);
+                    debug_printf("{CPU_OPERATION_CALL} return_addr: %02x, stack_addr = %02x ",pc,stack_addr);
+                    pc = exec_params.address;
+                    sp+=2;
+                }else{
+                    debug_printf("{CPU_OPERATION_CALL FALSE} return_addr: %02x, stack_addr = %02x ",pc,stack_addr);
+                }
                 ifetch_en = 1;
                 update_status_regs();
                 break;

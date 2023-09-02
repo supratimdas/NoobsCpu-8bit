@@ -34,7 +34,7 @@ NORMAL='\e[0m'
 
 echo -e "${BOLD}BUILDING CMODEL...${NORMAL}"
 cd $CMODEL_DIR
-make
+make noobsCpu
 echo -e "${BOLD}======================================================================= ${NORMAL}"
 
 echo -e "${BOLD}BUILDING TB... ${NORMAL}"

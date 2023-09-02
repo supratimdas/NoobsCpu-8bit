@@ -17,9 +17,9 @@
      ROW15:0x01,0x00,0x80
      TEMP1:0x00
      TEMP2:0x00
-     TIC_TAC_TOW_ROW0:0x00
-     TIC_TAC_TOW_ROW1:0x00
-     TIC_TAC_TOW_ROW2:0x00
+     TIC_TAC_TOW_ROW0:0x80
+     TIC_TAC_TOW_ROW1:0x20
+     TIC_TAC_TOW_ROW2:0x01
 .code
 
 LOOP:           NOP 
@@ -45,6 +45,7 @@ DRW_0_1:        XOR R0, R0
                 LOAD R1, TIC_TAC_TOW_ROW0
                 ANDI R1,R1,0x20
                 CALLNZ DRAW_O
+                CLR_BC
                 JMP   	LOOP
                 HALT
 

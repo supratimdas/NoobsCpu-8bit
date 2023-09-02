@@ -10,7 +10,8 @@
         JMPZ    FIB_0
         SUBI    R3,R3,1
         JMPZ    FIB_1
-LOOP:   CALL    NEXT_FIBONNACCI
+LOOP:   CLR_BC
+        CALL    NEXT_FIBONNACCI
         SUBI    R3,R3,1
         JMPNZ   LOOP
        
