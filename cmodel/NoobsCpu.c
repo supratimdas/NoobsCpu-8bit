@@ -581,6 +581,7 @@ int main(int argc, char** argv){
     printf("CPU initialized\n");
 
     init_shared_memory();
+	update_shared_memory(data_mem, 1);
 
     //3 stage basic pipeline
     while(!halted){
@@ -590,7 +591,7 @@ int main(int argc, char** argv){
         ifetch();
         debug_printf(",[SP=0x%03x * PC=0x%03x * SR=0x%02x * CR=0x%02x] ",sp,pc,sr,cr);
         cycle_counter++;
-	update_shared_memory(data_mem);
+	    update_shared_memory(data_mem, 0);
     }
 
     deinit_shared_memory();

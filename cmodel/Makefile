@@ -1,5 +1,7 @@
 CC=gcc
 
+.PHONY all: noobsCpu
+
 libshared_util.so : libshared_util.c
 	${CC} -shared -o libshared_util.so -fPIC libshared_util.c
 

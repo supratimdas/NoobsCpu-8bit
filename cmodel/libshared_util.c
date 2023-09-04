@@ -34,14 +34,22 @@ void read_updated_shared_memory() {
     for (int i=0; i< SHM_SIZE; i++) {
         shared_memory[i] = ptr[i];
     }
-    x1=shared_memory[8];
-    x2=shared_memory[9];
-    //printf("==================================\n");
-    //for (int i=0; i<10; i++) {
-    //    printf("%d ", shared_memory[i]);
-    //}
-    //printf("\n==================================\n");
 
+    shmdt(shm_ptr);
+}
 
+void update_shared_memory(uint8_t a1, uint8_t a2, uint8_t a3) {
+    void *shm_ptr = shmat(shmid, NULL, 0);
+    uint8_t* ptr;
+    if (shm_ptr == (void*)-1) {
+        perror("shmat");
+        exit(-1);
+    }
+    ptr=(uint8_t*)shm_ptr;
+    
+    ptr[56]=a1;
+    ptr[57]=a2;
+    ptr[58]=a3;
+    
     shmdt(shm_ptr);
 }
