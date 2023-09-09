@@ -425,10 +425,36 @@ module idecode (
                                 //    exec_ctrl_next = `EXEC_NOP;
                                 //    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CALL_FALSE}", cycle_counter);
                                 //end
-                                exec_ctrl_next = `CPU_OPERATION_CALL;
+                                if(((cr & (`CR_BCZ|`CR_BCNZ)) == (`CR_BCZ|`CR_BCNZ)) && (sr & `SR_OVF)) begin //branch if ovf
+                                    exec_ctrl_next = `CPU_OPERATION_CALL;
 `ifndef SYNTHESIS
-                                if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CALL_TRUE} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
+                                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CALL_TRUE_IF_OVF} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
 `endif
+                                end
+                                else if((cr & `CR_BCZ) && (sr & `SR_Z) && !(cr & `CR_BCNZ)) begin  //branch if zero
+                                    exec_ctrl_next = `CPU_OPERATION_CALL;
+`ifndef SYNTHESIS
+                                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CALL_TRUE_IF_ZERO} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
+`endif
+                                end
+                                else if((cr & `CR_BCNZ) && (sr & `SR_NZ) && !(cr & `CR_BCZ)) begin  //branch if not-zero
+                                    exec_ctrl_next = `CPU_OPERATION_CALL;
+`ifndef SYNTHESIS
+                                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CALL_TRUE_IF_NON_ZERO} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
+`endif
+                                end
+                                else if(!(cr & (`CR_BCZ|`CR_BCNZ))) begin    //unconditionl branch
+                                    exec_ctrl_next = `CPU_OPERATION_CALL;
+`ifndef SYNTHESIS
+                                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CALL_TRUE_UNCONDITIONAL} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
+`endif
+                                end
+                                else begin
+                                    exec_ctrl_next = `EXEC_NOP;
+`ifndef SYNTHESIS
+                                    if(`DEBUG_PRINT & print_en) $display("cycle = %05d: {IDECODE: CALL_FALSE} {SR = %02x, CR = %02x}", cycle_counter, sr, cr);
+`endif
+                                end
                             end
                             default: begin
 `ifndef SYNTHESIS
