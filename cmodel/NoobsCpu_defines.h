@@ -28,7 +28,7 @@
 #define CR_SP_INIT_MSB     0x1c
 #define CR_BCNZ            0x02
 #define CR_BCZ             0x01
-#define CR_ADR_MODE        0x40 
+#define CR_ADR_MODE        0x20 
 //sub type of MC_CTRL_USR base operation
 #define MISC    0x00
 #define USR     0x01

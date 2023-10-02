@@ -27,7 +27,7 @@
 `define CR_SP_INIT_MSB     8'h1c
 `define CR_BCNZ            8'h02
 `define CR_BCZ             8'h01
-`define CR_ADR_MODE        8'h40 
+`define CR_ADR_MODE        8'h20 
 
 `define CR_BCNZ_BIT_POS  1  
 `define CR_BCZ_BIT_POS   0 

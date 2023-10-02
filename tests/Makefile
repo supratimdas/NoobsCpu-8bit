@@ -3,7 +3,7 @@ CMODEL = ../cmodel/noobsCpu
 VSIM = ../tb/vsim.out
 
 SOURCE ?= test.asm
-DEBUG ?= 0
+DEBUG ?= 1
 
 .PHONY: assemble clean 
 

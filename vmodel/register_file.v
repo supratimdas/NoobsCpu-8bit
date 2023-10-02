@@ -120,4 +120,8 @@ module reg_file (
         end
     end
 
+    //assertions
+    assign wr_dat_1bit = wr_en ? (|wr_data): 0;
+    `ASSERT_NO_X("An X-state write to register detected", u_assert_no_x_1, clk, reset_, wr_dat_1bit) 
+
 endmodule

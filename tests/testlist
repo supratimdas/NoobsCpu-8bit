@@ -22,4 +22,4 @@ test_conditional_callz_false, test_conditional_callz_false.asm, "conditional cal
 test_conditional_callz_true, test_conditional_callz_true.asm, "conditional call if zero, condition evaluates false"
 test_conditional_callnz_false, test_conditional_callnz_false.asm, "conditional call if not zero, condition evaluates true"
 test_conditional_callnz_true, test_conditional_callnz_true.asm, "conditional call if not zero, condition evaluates false"
-test_tic_tac_toe, tic_tac_toe.asm, "tic tac toe game drawing routines"
+tic_tac_toe, tic_tac_toe.asm, "tic tac tie gane drawing routines"

@@ -10,7 +10,7 @@
 #include "NoobsCpu_Util.h"
 #include "NoobsCpu_defines.h"
 #include "data_memory_share.h" //this is used for sharing data memory in host, so that other subprocess can read/write from it, to test full system
-
+#include <stdarg.h>
 
 uint8_t     instruction;    //instruction
 uint16_t    pc;             //program counter 12bit
@@ -594,7 +594,9 @@ int main(int argc, char** argv){
 	    update_shared_memory(data_mem, 0);
     }
 
-    deinit_shared_memory();
+    if(!((getenv("NOOBS_RETAIN_SHARED_MEMORY") != NULL) && atoi((getenv("NOOBS_RETAIN_SHARED_MEMORY"))))) {
+        deinit_shared_memory();
+    }
     
     printf("\nExecution Halted at cycle : %05d. PC: %04d",cycle_counter,pc);
 

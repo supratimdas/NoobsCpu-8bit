@@ -12,6 +12,9 @@ set the following environment variable NOOBS_DEBUG to 1.
 in csh: setenv NOOBS_DEBUG 1
 in bash: export NOOBS_DEBUG=1
 
+//To maintain a shared view of the shared data memory after cmodel execution
+//finishes set variable NOOBS_RETAIN_SHARED_MEMORY to 1
+
 //TODO List:
 1. Add support in the cmodel to take instruction/data files from commandline
 2. Add support in the cmodel to support differnt formats including binary/hex

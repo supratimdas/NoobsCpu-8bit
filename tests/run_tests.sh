@@ -14,6 +14,15 @@
 #
 #
 #################################################
+TESTNAME='asm'
+if [[ $1 != "" ]]
+then
+    TESTNAME=$1
+    echo TRUE $TESTNAME
+else
+    echo FALSE $TESTNAME
+fi
+
 make clean
 TEST_DIR=`pwd`
 PROJ_DIR=`pwd|sed 's/tests//g'`
@@ -45,7 +54,7 @@ echo -e "${BOLD}================================================================
 cd $TEST_DIR
 echo "Running tests"
 
-cat testlist | grep -v "\#" |
+cat testlist | grep -v "\#" |grep $TESTNAME |
 while read line
 do
     testname=`echo $line| cut -d ',' -f 1`
@@ -71,4 +80,4 @@ do
         echo $dif" differences found between cmodel/vmodel final data_out dump"
         echo -e "${RED}========================================-"$testname"--FAIL--========================================${NC}"
     fi
-done | grep "PASS\|FAIL"
+done | grep "PASS\|FAIL\|Testname\|assert\|running"

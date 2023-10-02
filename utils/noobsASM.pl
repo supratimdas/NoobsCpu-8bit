@@ -17,7 +17,7 @@ $OP_CODE_HASH{CALL}     = 0b000_11_000;
 $OP_CODE_HASH{CALLZ}    = 0b000_11_000;
 $OP_CODE_HASH{CALLNZ}   = 0b000_11_000;
 $OP_CODE_HASH{CALLOVF}  = 0b000_11_000;
-$OP_CODE_HASH{CALLNC}  = 0b000_11_000;
+$OP_CODE_HASH{CALLNC}   = 0b000_11_000;
 $OP_CODE_HASH{JMP}      = 0b000_10_000;
 $OP_CODE_HASH{JMPNC}    = 0b000_10_000;
 $OP_CODE_HASH{JMPZ}     = 0b000_10_000;
@@ -144,7 +144,7 @@ while (<ASM>) {
                     $code_index++;
                     $code_index++;
                     $code_index++;
-                }elsif($OPCODE =~ /(JMPNC)/){
+                }elsif($OPCODE =~ /(JMPNC|CALLNC)/){
                     $code_index++;
                 }
 

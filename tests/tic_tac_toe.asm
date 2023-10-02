@@ -22,6 +22,7 @@
      TEMP2:0x00
 .code
 
+LOOP:           NOP 
 DRW_0_0:        XOR R0, R0
                 XOR R2, R2
                 ADDI R0, R0, 0
@@ -78,7 +79,7 @@ DRW_1_0:        XOR R0, R0
                 LOAD R1, TIC_TAC_TOW_ROW1
                 ANDI R1,R1,0x80
                 CALLNZ DRAW_O
-                LOAD R1, TIC_TAC_TOW_ROW0
+                LOAD R1, TIC_TAC_TOW_ROW1
                 ANDI R1,R1,0xC0
                 CALLZ CLEAR
                 CLR_BC
@@ -93,7 +94,7 @@ DRW_1_1:        XOR R0, R0
                 LOAD R1, TIC_TAC_TOW_ROW1
                 ANDI R1,R1,0x20
                 CALLNZ DRAW_O
-                LOAD R1, TIC_TAC_TOW_ROW0
+                LOAD R1, TIC_TAC_TOW_ROW1
                 ANDI R1,R1,0x30
                 CALLZ CLEAR
                 CLR_BC
@@ -108,7 +109,7 @@ DRW_1_2:        XOR R0, R0
                 LOAD R1, TIC_TAC_TOW_ROW1
                 ANDI R1,R1,0x08
                 CALLNZ DRAW_O
-                LOAD R1, TIC_TAC_TOW_ROW0
+                LOAD R1, TIC_TAC_TOW_ROW1
                 ANDI R1,R1,0x0C
                 CALLZ CLEAR
                 CLR_BC
@@ -123,7 +124,7 @@ DRW_2_0:        XOR R0, R0
                 LOAD R1, TIC_TAC_TOW_ROW2
                 ANDI R1,R1,0x80
                 CALLNZ DRAW_O
-                LOAD R1, TIC_TAC_TOW_ROW0
+                LOAD R1, TIC_TAC_TOW_ROW2
                 ANDI R1,R1,0xC0
                 CALLZ CLEAR
                 CLR_BC
@@ -138,7 +139,7 @@ DRW_2_1:        XOR R0, R0
                 LOAD R1, TIC_TAC_TOW_ROW2
                 ANDI R1,R1,0x20
                 CALLNZ DRAW_O
-                LOAD R1, TIC_TAC_TOW_ROW0
+                LOAD R1, TIC_TAC_TOW_ROW2
                 ANDI R1,R1,0x30
                 CALLZ CLEAR
                 CLR_BC
@@ -153,13 +154,14 @@ DRW_2_2:        XOR R0, R0
                 LOAD R1, TIC_TAC_TOW_ROW2
                 ANDI R1,R1,0x08
                 CALLNZ DRAW_O
-                LOAD R1, TIC_TAC_TOW_ROW0
+                LOAD R1, TIC_TAC_TOW_ROW2
                 ANDI R1,R1,0x0C
                 CALLZ CLEAR
                 CLR_BC
                 HALT
+                JMP   	LOOP
 
-DRAW_X: CALL MUL6x
+DRAW_X: CALLNC MUL6x
         XOR R3, R3
         LOAD R2, TEMP2
         SET_ADR_MODE
@@ -182,7 +184,7 @@ DRAW_X: CALL MUL6x
         RET
 
 
-DRAW_O: CALL MUL6x
+DRAW_O: CALLNC MUL6x
         XOR R3, R3
         LOAD R2, TEMP2
         SET_ADR_MODE
@@ -204,7 +206,7 @@ DRAW_O: CALL MUL6x
         RST_ADR_MODE
         RET
 
-CLEAR:  CALL MUL6x
+CLEAR:  CALLNC MUL6x
         XOR R3, R3
         LOAD R2, TEMP2
         SET_ADR_MODE
