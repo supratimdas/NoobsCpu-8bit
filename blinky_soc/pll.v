@@ -16,6 +16,7 @@ module pll(
 	output locked
 	);
 
+`ifdef lattice
 SB_PLL40_CORE #(
 		.FEEDBACK_PATH("SIMPLE"),
 		.DIVR(4'b0000),		// DIVR =  0
@@ -29,5 +30,10 @@ SB_PLL40_CORE #(
 		.REFERENCECLK(clock_in),
 		.PLLOUTCORE(clock_out)
 		);
+`endif
 
+`ifdef xilinx
+    assign clock_in = clock_in;
+    assign locked = 1;
+`endif
 endmodule

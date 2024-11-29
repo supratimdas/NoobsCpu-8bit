@@ -11,18 +11,20 @@
 `define UART_TX_M_ADDR 11'd101
 
 module blinky_soc (
+    reset_,
     clk,
     LED,
     uart_tx
 );
     //IOs
+    input reset_;
     input   clk;
     output  LED;
     output  uart_tx;
 
-    reg [25:0] counter;
+    reg [31:0] counter;
     always @(posedge clk) begin
-        counter <= counter + 1'b1;
+        counter[31:0] <= counter[31:0] + 1'b1;
     end
 
 
@@ -56,7 +58,7 @@ module blinky_soc (
     ///////////////////////////////////////////////////////////////////
 
 
-    wire cpu_clk =  clk; //counter[1];
+    wire cpu_clk =  counter[5];
 
     wire [7:0] i_data;
     wire [7:0] m_rd_data;
@@ -103,7 +105,7 @@ module blinky_soc (
     wire clk50m;
     wire txclk_en;
     wire tx;
-    assign uart_tx = tx;
+    assign uart_tx = 0; //counter[25]; //tx;
 
     pll u_pll(
 	    .clock_in(clk),
@@ -193,7 +195,7 @@ module blinky_soc (
     );
 
     //memory/io subsystem
-    `define _BLINKY_ROM_
+    //`define _BLINKY_ROM_
     `ifdef _BLINKY_ROM_
     rom_blinky_hello_world u_inst_mem (
         .addr(i_addr), //< i

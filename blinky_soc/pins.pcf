@@ -48,6 +48,7 @@ set_io LED  95
 
 set_io uart_tx  91
 
+set_io reset_  81
 # ------------------------ EXPANSION I/O ------------------------------------
 #
 # -- Numeration

@@ -13,9 +13,11 @@ use Getopt::Long qw(GetOptions);
 #######get args#############
 my $input_file="code.txt";
 my $mem_type="inst";
+my $target="xilinx";
 GetOptions('input_file=s' => \$input_file,
-           'type=s' => \$mem_type
-          ) or die "Usage: $0 -input_file FILENAME -type <inst|data>\n";
+           'type=s' => \$mem_type,
+           'target=s' => \$target
+          ) or die "Usage: $0 -input_file FILENAME -type <inst|data> -target <lattice|xilinx>\n";
 
 die "invalid option for -type arg. legal options are:\ninst\ndata\n" if(!($mem_type =~ /(inst|data)/));
 ###########################
@@ -56,6 +58,7 @@ push(@vlog_out, << "VLOG_END");
 VLOG_END
 }
 
+if($target eq "lattice") { ##for lattice ice40  target
 push(@vlog_out, << "VLOG_END");
 
     SB_RAM40_4KNR #(
@@ -133,6 +136,37 @@ push(@vlog_out, << "VLOG_END");
     );
  endmodule
 VLOG_END
+} ##lattice ice40
+
+
+if($target eq "xilinx") { ##xilinx XC7A100T
+push(@vlog_out, << "VLOG_END");
+    reg [7:0] ram [0:2047];
+
+    always @(posedge clk) begin
+VLOG_END
+if($mem_type eq "data") {
+push(@vlog_out, << "VLOG_END");
+        if (wr) begin
+            ram[addr] <= wr_data; // Write operation
+        end
+VLOG_END
+}
+push(@vlog_out, << "VLOG_END");
+        if (rd) begin
+            rd_data <= ram[addr];    // Read operation
+        end
+    end
+VLOG_END
+
+push(@vlog_out, << "VLOG_END");
+    initial begin
+        \$readmemh("$input_file", ram); // Load initialization data
+    end
+ endmodule
+VLOG_END
+}##xilinx XC7A100T
+
 
 if($mem_type eq "inst") {
     open(OUTPUT_FILE, ">inst_mem.v") or die "Unable to open file inst_mem.v $!";

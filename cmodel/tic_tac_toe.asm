@@ -159,7 +159,6 @@ DRW_2_2:        XOR R0, R0
                 CALLZ CLEAR
                 CLR_BC
                 JMP   	LOOP
-                HALT
 
 DRAW_X: CALLNC MUL6x
         XOR R3, R3

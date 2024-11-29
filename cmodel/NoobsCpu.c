@@ -3,7 +3,7 @@
 * Description   : C-model for the NoobsCpu ISA
 * Organization  : NONE 
 * Creation Date : 15-03-2019
-* Last Modified : Tuesday 20 April 2021 04:05:46 PM
+* Last Modified : Wed Nov 27 20:02:54 2024
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 
@@ -594,9 +594,7 @@ int main(int argc, char** argv){
 	    update_shared_memory(data_mem, 0);
     }
 
-    if(!((getenv("NOOBS_RETAIN_SHARED_MEMORY") != NULL) && atoi((getenv("NOOBS_RETAIN_SHARED_MEMORY"))))) {
-        deinit_shared_memory();
-    }
+    deinit_shared_memory();
     
     printf("\nExecution Halted at cycle : %05d. PC: %04d",cycle_counter,pc);
 
