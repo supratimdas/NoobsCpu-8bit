@@ -32,26 +32,22 @@ void update_shared_memory(uint8_t* data_mem_ptr, int mode) {
             perror("shmat");
             exit(-1);
         }
-    }
-    if(mode == 1) {
-        memcpy(last_dmem_copy, (const void*)data_mem_ptr, SHM_SIZE);
-        if(((getenv("NOOBS_RETAIN_SHARED_MEMORY") != NULL) && atoi((getenv("NOOBS_RETAIN_SHARED_MEMORY"))))) {
+        if(mode == 1) {
+            memcpy(last_dmem_copy, (const void*)data_mem_ptr, SHM_SIZE);
             memcpy(shm_ptr, (const void*)data_mem_ptr, SHM_SIZE);
-        }
-    }else{
-        for (int i=0; i < SHM_SIZE; i++) {
-            if(((getenv("NOOBS_RETAIN_SHARED_MEMORY") != NULL) && atoi((getenv("NOOBS_RETAIN_SHARED_MEMORY"))))) {
+        }else{
+            for (int i=0; i < SHM_SIZE; i++) {
                 if(last_dmem_copy[i] != data_mem_ptr[i]) {
                     shm_ptr_uint8_t[i] = data_mem_ptr[i];
                 }
+                if(shm_ptr_uint8_t[i] != data_mem_ptr[i]) {
+                    data_mem_ptr[i] = shm_ptr_uint8_t[i];
+                }
             }
-            if(shm_ptr_uint8_t[i] != data_mem_ptr[i]) {
-                data_mem_ptr[i] = shm_ptr_uint8_t[i];
-            }
+            memcpy(last_dmem_copy, (const void*)data_mem_ptr, SHM_SIZE);
         }
-        memcpy(last_dmem_copy, (const void*)data_mem_ptr, SHM_SIZE);
+        shmdt(shm_ptr);
     }
-    shmdt(shm_ptr);
 }
 
 
