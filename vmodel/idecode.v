@@ -74,8 +74,6 @@ module idecode (
  *+---------+---------+---------+---------+---------+---------+---------+---------+
  */
 
-    assign tgt_addr = exec_addr_next;
-
     //regs
     reg [0:0] imm_mode;
     reg [7:0] prev_inst;
@@ -112,8 +110,18 @@ module idecode (
      *+---------+---------+---------+---------+---------+---------+---------+---------+
      */
 
+    reg func_ret;
+    reg func_ret_q;
+    reg ret_op_restore_ongoing_q;
+    reg ret_op_restore_ongoing_qq;
     //wires
     wire [7:0] curr_inst;
+    wire func_ret_next;
+
+    wire ret_op_restore_ongoing;
+
+    
+    assign tgt_addr = exec_addr_next;
 
     assign curr_inst = (ret_op_restore_ongoing | ret_op_restore_ongoing_q | ret_op_restore_ongoing_qq | ~idecode_en) ? `OP_CODE_NOP : inst_i;
 
@@ -125,11 +133,8 @@ module idecode (
     assign decode2exec_latch_ret_addr = (exec_ctrl_next == `CPU_OPERATION_CALL);
 
 
-    wire func_ret_next;
     assign func_ret_next = idecode_en & (exec_ctrl_next == `CPU_OPERATION_RET);
 
-    reg func_ret;
-    reg func_ret_q;
 
     always @(posedge clk) begin
         if(!reset_) begin
@@ -142,11 +147,8 @@ module idecode (
         end
     end
 
-    wire ret_op_restore_ongoing;
     assign ret_op_restore_ongoing = func_ret || func_ret_q;
 
-    reg ret_op_restore_ongoing_q;
-    reg ret_op_restore_ongoing_qq;
     always @(posedge clk) begin
         if(!reset_) begin
             ret_op_restore_ongoing_q   <= 1'b0;

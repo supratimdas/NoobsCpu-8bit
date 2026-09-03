@@ -7,6 +7,7 @@
 * Author        : Supratim Das (supratimofficio@gmail.com)
 ************************************************************/ 
 `timescale 1ns/1ps
+`include "noobs_cpu_defines.vh"
 
 module execute(
     clk,            //<i
@@ -140,6 +141,16 @@ module execute(
     reg [3:0] exec_ctrl_1D; //1 cycle delayed version, since register read/imm value takes 1 cycle
     reg       execute_en_1D;
     wire      pc_branch;
+    
+    reg memory_mapped_reg_access;
+    wire [11:0] dst_d_mem_addr;
+    reg [11:0] dst_addr_q;
+    wire restore_ret_addr_upper;
+    wire restore_ret_addr_lower;
+    reg indirect_reg_wr_access;
+    reg sp_lsb_7_0_update;
+    wire sp_incr;
+    wire sp_decr;
 
     assign pc_branch = ((exec_ctrl[3:0] == `CPU_OPERATION_JMP) || (exec_ctrl[3:0] == `CPU_OPERATION_CALL)) & execute_en;
 
@@ -190,8 +201,6 @@ module execute(
 
     assign ret_addr = {ret_addr1[3:0],ret_addr0};
 
-    wire sp_incr;
-    wire sp_decr;
     assign sp_incr = store_ret_addr_lower || store_ret_addr_upper;
     assign sp_decr = restore_ret_addr_upper || restore_ret_addr_lower;
 
@@ -204,7 +213,7 @@ module execute(
         end
     end
 
-    reg sp_lsb_7_0_update;
+
     always @(*) begin
         if(sp_incr) begin
             sp_lsb_7_0_next = sp_lsb_7_0 + 1;
@@ -236,7 +245,7 @@ module execute(
         end
     end
 
-    reg indirect_reg_wr_access;
+
     assign reg_wr_sel = indirect_reg_wr_access ? dst_addr[2:0] : dst_reg_wr_sel; 
 
     //src0 & src1 data (these are available +1 cycle after decode generates the selects)
@@ -244,8 +253,6 @@ module execute(
     assign src1_data = imm_data_vld ? imm_data : reg_src1_data; //immediate value will also be available in the next cycle since the immediate value is encoded in the next 8 bit of the original instruction
 
     //generate memory access control signals
-    wire restore_ret_addr_upper;
-    wire restore_ret_addr_lower;
     assign restore_ret_addr_lower = ((exec_ctrl[3:0] == `CPU_OPERATION_RET) & execute_en);
     assign restore_ret_addr_upper = ((exec_ctrl_1D[3:0] == `CPU_OPERATION_RET) & execute_en_1D);
     assign d_mem_rd = !memory_mapped_reg_access & (((exec_ctrl_1D[3:0] == `MEM_OPERATION_RD) & execute_en_1D) || restore_ret_addr_upper || restore_ret_addr_lower);
@@ -260,14 +267,14 @@ module execute(
 
     assign stack_addr = (store_ret_addr_lower|store_ret_addr_upper) ? {1'b0, sp_msb_10_8, sp_lsb_7_0} : ({1'b0, sp_msb_10_8, sp_lsb_7_0} - 1);
     
-    reg [11:0] dst_addr_q;
+
     always @(posedge clk) begin
         if(d_mem_en) begin
             dst_addr_q[11:0] <= dst_addr[11:0];
         end
     end
 
-    wire [11:0] dst_d_mem_addr;
+
     //assign dst_d_mem_addr[11:0] =(d_mem_wr|d_mem_rd) ? dst_addr : dst_addr_q;
     assign dst_d_mem_addr[11:0] =(d_mem_en) ? dst_addr : dst_addr_q;
 
@@ -275,7 +282,6 @@ module execute(
     assign d_mem_addr = (store_ret_addr_lower|store_ret_addr_upper|restore_ret_addr_upper|restore_ret_addr_lower) ? (stack_addr) : ((cr & `CR_ADR_MODE) ? indirect_addr : dst_d_mem_addr);
 
     //actual operation based on the encoded exec_ctrl info
-    reg memory_mapped_reg_access;
     always @(*) begin
         reg_wr_data = 8'd0;
         reg_wr_en   = 1'b0;

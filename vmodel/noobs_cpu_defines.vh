@@ -94,5 +94,7 @@
     assert_no_x #(MSG) INST (CLK, RST, EXPR);  \
 `endif \
 
-
+`ifndef DEBUG_PRINT
+`define DEBUG_PRINT 0
+`endif
 `endif
