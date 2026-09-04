@@ -30,7 +30,6 @@ push(@vlog_out, << "VLOG_END");
  * DO NOT EDIT
  */
  module ${mem_type}_mem (
-    clk,    //< i
     addr,   //< i
     rd,     //< i
     rd_data,//> o
@@ -42,12 +41,13 @@ push(@vlog_out, << "VLOG_END");
 VLOG_END
 }
 push(@vlog_out, << "VLOG_END");
+    clk     //< i
  );
 
     //IOs
     input           clk;
 
-    output [7:0]    rd_data;
+    output reg [7:0]    rd_data;
     input [10:0]    addr;
     input           rd;
 VLOG_END
@@ -55,95 +55,19 @@ if($mem_type =~ /data/) {
 push(@vlog_out, << "VLOG_END");
     input           wr;
     input [7:0]     wr_data;
-VLOG_END
-}
-
-if($target eq "lattice") { ##for lattice ice40  target
-push(@vlog_out, << "VLOG_END");
-
-    SB_RAM40_4KNR #(
-VLOG_END
-
-open(INPUT_FILE, "<${input_file}") or die "Unable to open file ${input_file}, $!";
-
-my $num_bytes = 0;
-my $init_iterator = 0;
-my @init_array = "";
-while(<INPUT_FILE>) {
-    my $line = $_;
-    $line =~ s/\n//g;
-    $line =~ s/0x//g;
-    push(@init_array, "$line");
-    push(@init_array, "00"); ##memory accesses are 16bits aligned, entering a dummy value
-    $num_bytes+=2;
-    if($num_bytes == 32) {
-        @init_array = reverse(@init_array);
-        my $initialization_str = join("_", @init_array);
-        $initialization_str =~ s/_$//g;
-push(@vlog_out, << "VLOG_END");
-       .INIT_${init_iterator}(256'h$initialization_str),
-VLOG_END
-        $num_bytes = 0;
-        $init_iterator++;
-        @init_array = "";
-    }
-}
-if($num_bytes < 32) {
-    while($num_bytes < 32) {
-        push(@init_array, "00");
-        $num_bytes++; 
-    }
-    @init_array = reverse(@init_array);
-    my $initialization_str = join("_", @init_array);
-    $initialization_str =~ s/_$//g;
-push(@vlog_out, << "VLOG_END");
-       .INIT_${init_iterator}(256'h$initialization_str),
-VLOG_END
-    $init_iterator++;
-}
-
-if($mem_type eq "inst") {
-push(@vlog_out, << "VLOG_END");
-       .WRITE_MODE(0),
-        .READ_MODE(1)
-    ) ram40_4k_512x8 (
-        .WADDR(),
-        .WCLK(),
-        .WCLKE(),
-        .WDATA(),
-        .WE(),
+    reg [7:0] ram [0:2047]; //2KB RAM
 VLOG_END
 }else{
-push(@vlog_out, << "VLOG_END"); ##check what WRITE_MODE/RD_MODE. got this working after trial and error
-       .WRITE_MODE(0),
-        .READ_MODE(1)
-    ) ram40_4k_512x8 (
-        .WADDR(addr),
-        .WCLK(clk),
-        .WCLKE(1'b1),
-        .WDATA(wr_data),
-        .WE(wr),
+my $inst_bytes = `cat $input_file | wc -l`;
+my $inst_bytes_m_1 = $inst_bytes - 1;
+push(@vlog_out, << "VLOG_END");
+    reg [7:0] ram [0:$inst_bytes_m_1];  //ROM space is exactly as much the program needs  
 VLOG_END
 }
 
-
 push(@vlog_out, << "VLOG_END");
-       .RDATA(rd_data),
-        .RADDR(addr),
-        .RCLKN(clk),
-        .RCLKE(1'b1),
-        .RE(rd),
-    );
- endmodule
-VLOG_END
-} ##lattice ice40
 
-
-if($target eq "xilinx") { ##xilinx XC7A100T
-push(@vlog_out, << "VLOG_END");
-    reg [7:0] ram [0:2047];
-
-    always @(posedge clk) begin
+    always @(negedge clk) begin
 VLOG_END
 if($mem_type eq "data") {
 push(@vlog_out, << "VLOG_END");
@@ -159,13 +83,30 @@ push(@vlog_out, << "VLOG_END");
     end
 VLOG_END
 
+open(INPUT_FILE, "<${input_file}") or die "Unable to open file ${input_file}, $!";
 push(@vlog_out, << "VLOG_END");
     initial begin
-        \$readmemh("$input_file", ram); // Load initialization data
+VLOG_END
+my $index = 0;
+while(<INPUT_FILE>) {
+    my $line = $_;
+    $line =~ s/\n//g;
+    $line =~ s/0x/8'h/g;
+push(@vlog_out, << "VLOG_END");
+        ram[$index] = $line; 
+VLOG_END
+    $index++;
+}
+push(@vlog_out, << "VLOG_END");
     end
  endmodule
 VLOG_END
-}##xilinx XC7A100T
+##push(@vlog_out, << "VLOG_END");
+##    initial begin
+##        \$readmemh("$input_file", ram); // Load initialization data
+##    end
+## endmodule
+##VLOG_END
 
 
 if($mem_type eq "inst") {

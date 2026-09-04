@@ -13,8 +13,6 @@ YOSYS_LOG  = synth.log
 YOSYS_ARGS = -v3 -l $(YOSYS_LOG)  -D$(TARGET)=1
 
 VERILOG_SRCS = blinky_soc.v noobs_vlib.v data_mem.v inst_mem.v pll.v baud_rate_gen.v transmitter.v 
-##rom_blinky.v rom_blinky_hello_world.v
-##VERILOG_SRCS = blinky.v 
 
 ASM_FILE = blinky.asm
 DATA_MEM = data_mem.v

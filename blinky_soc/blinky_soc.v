@@ -23,42 +23,47 @@ module blinky_soc (
     output  uart_tx;
 
     reg [31:0] counter;
+ 
+    `ifdef xilinx
     always @(posedge clk) begin
-        counter[31:0] <= counter[31:0] + 1'b1;
-    end
-
-
-    //===========power-on reset generation logic===============//
-    reg[23:0] prim_reset_gen_cnt;
-    reg[23:0] sec_reset_gen_cnt;
-    always @(posedge clk) begin
-        if(prim_reset_gen_cnt != 24'hffffff)
-            prim_reset_gen_cnt <= prim_reset_gen_cnt + 1'b1;
-    end
-
-    wire prim_rst_;
-    assign prim_rst_ = (prim_reset_gen_cnt == 24'hffffff);
-
-    always @(posedge clk) begin
-        if(!prim_rst_) begin
-            sec_reset_gen_cnt <= 24'h0;
+        if(!reset_) begin
+            counter[31:0] <= 0;
         end
-        else if(sec_reset_gen_cnt != 24'hffffff) begin
-            sec_reset_gen_cnt <= sec_reset_gen_cnt + 1'b1;
+        else begin
+            counter[31:0] <= counter[31:0] + 1'b1;
         end
     end
-
-    wire sec_rst_;
-    assign sec_rst_ = (sec_reset_gen_cnt == 24'hffffff);
-
     wire system_reset_;
-    assign system_reset_ = prim_rst_ & sec_rst_;
+    assign system_reset_ = reset_;
+    `endif
+
+    `ifdef lattice
+     reg cpu_rst;
+     initial begin
+        cpu_rst = 0;
+        counter[31:0] = 0;
+     end
+
+     always @(posedge clk) begin
+         counter[31:0] <= counter[31:0] + 1'b1;
+         if(!cpu_rst) begin
+             cpu_rst <= (counter[31:0] > 4096) ? 1 : 0;
+         end
+     end
+     wire system_reset_;
+     assign system_reset_ = cpu_rst;
+    `endif
 
 
     ///////////////////////////////////////////////////////////////////
 
 
-    wire cpu_clk =  counter[5];
+    `ifdef lattice
+    wire cpu_clk =  counter[5]; 
+    `endif
+    `ifdef xilinx
+    wire cpu_clk = counter[8];
+    `endif
 
     wire [7:0] i_data;
     wire [7:0] m_rd_data;
@@ -102,16 +107,19 @@ module blinky_soc (
     ///////////////////////////////////////////////////
 
     ///////////////////////UART////////////////////////
-    wire clk50m;
     wire txclk_en;
     wire tx;
-    assign uart_tx = 0; //counter[25]; //tx;
-
+    assign uart_tx = tx;
+    `ifdef lattice
     pll u_pll(
 	    .clock_in(clk),
 	    .clock_out(clk50m),
 	    .locked()
 	);
+    `endif
+    `ifdef xilinx
+    assign clk50m = counter[0];
+    `endif
 
     baud_rate_gen u_br_gen(
         .clk_50m(clk50m),
@@ -164,7 +172,7 @@ module blinky_soc (
 
     wire tx_busy;
 
-    wire [7:0] cpu_rd_data;
+    reg [7:0] cpu_rd_data;
     always @(*) begin
         if((m_addr == `UART_TX_M_ADDR) & m_rd & m_en) begin
             cpu_rd_data = {7'd0,tx_busy};
@@ -191,7 +199,7 @@ module blinky_soc (
         .rd_data(m_rd_data),  //> o
         .wr_data(m_wr_data),  //< i
         .wr(m_wr),      //< i
-        .rd(m_rd),      //< i
+        .rd(m_rd)      //< i
     );
 
     //memory/io subsystem
@@ -206,7 +214,7 @@ module blinky_soc (
         .clk(cpu_clk),     //< i
         .addr(i_addr), //< i
         .rd_data(i_data), //< io >
-        .rd(1'b1),     //< i
+        .rd(1'b1)     //< i
     );
     `endif
 

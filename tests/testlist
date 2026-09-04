@@ -23,3 +23,4 @@ test_conditional_callz_true, test_conditional_callz_true.asm, "conditional call 
 test_conditional_callnz_false, test_conditional_callnz_false.asm, "conditional call if not zero, condition evaluates true"
 test_conditional_callnz_true, test_conditional_callnz_true.asm, "conditional call if not zero, condition evaluates false"
 tic_tac_toe, tic_tac_toe.asm, "tic tac tie gane drawing routines"
+blinky_soc, blinky.asm, "blinky program testing"
