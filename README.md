@@ -20,6 +20,12 @@ A complete, from-scratch 8-bit CPU built as an educational side project — feat
 - [Assembly Language Reference](#assembly-language-reference)
   - [Program Structure — .data and .code Sections](#program-structure--data-and-code-sections)
   - [Instruction Set](#instruction-set)
+- [NoobsC Compiler](#noobsc-compiler)
+  - [Overview](#overview)
+  - [Usage](#usage)
+  - [Supported Language Features](#supported-language-features)
+  - [Limitations](#limitations)
+  - [Compiler Example Programs](#compiler-example-programs)
 - [Building and Running](#building-and-running)
   - [Running the Test Suite](#running-the-test-suite)
   - [Assembling a Program](#assembling-a-program)
@@ -47,6 +53,7 @@ A complete, from-scratch 8-bit CPU built as an educational side project — feat
 | I/O | Memory-mapped |
 | Configurable opcodes | 8 user-definable reserved opcodes |
 | FPGA targets | Lattice iCE40 (iCEStick), Xilinx Artix-7 (Nexys A7) |
+| High-level compiler | NoobsC — a C-like compiler (Python 3) that targets the CPU directly |
 
 ---
 
@@ -65,7 +72,15 @@ NoobsCpu-8bit/
 ├── tb/               Verilog testbench (produces .vcd waveforms)
 ├── utils/
 │   ├── noobsASM.pl   2-pass assembler (Perl)
-│   └── gen_fpga_mem.pl  BRAM initialiser for iCE40 / Artix-7
+│   ├── gen_fpga_mem.pl  BRAM initialiser for iCE40 / Artix-7
+│   └── NoobsC/       High-level C-like compiler (Python 3)
+│       ├── noobsc.py     Compiler driver (entry point)
+│       ├── lexer.py      Phase 1 — tokeniser
+│       ├── parser.py     Phase 2 — recursive-descent parser
+│       ├── semantic.py   Phase 3 — semantic analyser / symbol table
+│       ├── codegen.py    Phase 4 — assembly code generator
+│       ├── ast_nodes.py  AST node definitions
+│       └── examples/     NoobsC example programs (.nc)
 ├── tests/            25+ self-checking assembly tests + run scripts
 ├── blinky_soc/       SoC: LED blinky + "Hello World" over UART TX
 ├── tic_tac_toe_soc/  SoC: Tic-tac-toe draw routines
@@ -85,6 +100,7 @@ All tooling is free and open-source.
 | **Icarus Verilog (`iverilog`)** | RTL simulation | `sudo apt install iverilog` |
 | **GTKWave** | Waveform viewer for `.vcd` dumps | `sudo apt install gtkwave` |
 | **Perl** | Run the assembler and BRAM generator | `sudo apt install perl` (usually pre-installed) |
+| **Python 3.8+** | Run the NoobsC compiler | `sudo apt install python3` (usually pre-installed) |
 | **Yosys** | Synthesis for FPGA targets | `sudo apt install yosys` or build from source |
 | **nextpnr / icestorm** | Place-and-route for Lattice iCE40 | See [icestorm.org](http://www.clifford.at/icestorm/) |
 
@@ -362,6 +378,225 @@ CALLNZ  DRAW_X       # call DRAW_X if bit 6 was set
 
 ---
 
+## NoobsC Compiler
+
+### Overview
+
+**NoobsC** is a small C-like compiler that targets NoobsCpu assembly directly. It lets you write programs in a readable high-level language and have them compiled, assembled, and run on the CPU — closing the full stack from source code down to real silicon.
+
+The compiler is written in Python 3 and implements a classic five-phase pipeline:
+
+```
+Source (.nc)
+    │
+    ▼  Phase 1 — Lexer       (lexer.py)
+ Tokens
+    │
+    ▼  Phase 2 — Parser      (parser.py)
+   AST
+    │
+    ▼  Phase 3 — Semantic    (semantic.py)
+Symbol table + validated AST
+    │
+    ▼  Phase 4 — Code Gen    (codegen.py)
+Assembly text (.asm)
+    │
+    ▼  Phase 5 — Assembler   (noobsASM.pl)
+code.txt / data.txt
+```
+
+### Usage
+
+```bash
+# Full compile: source → .asm written to CWD, then assembled → code.txt + data.txt
+python utils/NoobsC/noobsc.py path/to/program.nc
+
+# Emit assembly only (skip the assembler step)
+python utils/NoobsC/noobsc.py --asm path/to/program.nc
+
+# Dump token stream (debug the lexer)
+python utils/NoobsC/noobsc.py --lex path/to/program.nc
+
+# Dump the AST (debug the parser)
+python utils/NoobsC/noobsc.py --ast path/to/program.nc
+```
+
+The `.asm` file is always written to the **current working directory**, not next to the source file.
+
+### Supported Language Features
+
+#### Data Types
+
+| Type | Description |
+|---|---|
+| `char` | Single 8-bit unsigned integer (0–255). The only scalar type. |
+| `char name[N]` | Fixed-size array of N bytes. |
+
+#### Declarations
+
+- **Global variables and arrays** — allocated in the `.data` section, accessible from any function.
+- **Local variables** — declared at the top of a function body; statically allocated per-function.
+- **Function parameters** — up to **3 parameters**, passed in registers R0, R1, R2.
+- **`void` and `char` return types** — `char` functions return a value in R0; `void` functions do not.
+
+#### Operators
+
+| Category | Operators |
+|---|---|
+| Arithmetic | `+`, `-` |
+| Bitwise | `&`, `\|`, `^`, `~` |
+| Logical | `!`, `&&`, `\|\|` |
+| Comparison | `==`, `!=`, `<`, `>`, `<=`, `>=` |
+| Assignment | `=`, `+=`, `-=`, `&=`, `\|=`, `^=` |
+| Postfix increment / decrement | `i++`, `i--` |
+| Unary | `-x` (two's-complement negation), `~x` (bitwise NOT), `!x` (logical NOT) |
+
+#### Statements
+
+| Statement | Syntax |
+|---|---|
+| Variable declaration | `char x;` or `char x = expr;` |
+| If / else | `if (cond) { … } else { … }` |
+| While loop | `while (cond) { … }` |
+| For loop | `for (init; cond; step) { … }` |
+| Return | `return expr;` or `return;` |
+| Break | `break;` (exits the innermost loop) |
+| Expression statement | `expr;` |
+
+#### Comments
+
+```c
+// Line comment — runs to end of line
+
+/* Block comment —
+   spans multiple lines */
+```
+
+> **Note:** `#` is NOT a valid comment character in NoobsC source files (it is only valid in hand-written `.asm` files for the assembler).
+
+#### Example
+
+```c
+// fibonacci.nc — compute fib(10) and store in result
+char result;
+
+char fib(char n) {
+    char a; char b; char tmp;
+    a = 0; b = 1;
+    while (n) {
+        tmp = b;
+        b = a + b;
+        a = tmp;
+        n = n - 1;
+    }
+    return a;
+}
+
+void main() {
+    result = fib(10);   // result = 55
+}
+```
+
+```bash
+cd /path/to/your/project
+python utils/NoobsC/noobsc.py utils/NoobsC/examples/fibonacci.nc
+# Assembly written to: ./fibonacci.asm
+# Assembled successfully → code.txt / data.txt
+./cmodel/noobsCpu code.txt data.txt
+# result byte (0x37 = 55) is first entry in data_out.txt
+```
+
+---
+
+### Limitations
+
+These are intentional simplifications, not missing features — they keep the compiler and target ISA understandable without hiding complexity behind abstraction.
+
+#### 1. No recursion
+
+Local variables and parameters are **statically allocated** (not on a call stack). Calling a function recursively would overwrite its own in-progress locals. The compiler does not check for this at compile time — recursive programs silently produce wrong output.
+
+#### 2. No multiplication, division, or modulo
+
+The `*`, `/`, and `%` operators are **not supported** as expression values. The CPU has no MUL/DIV instruction, and implementing them inline would generate unbounded code size. Use a helper function instead:
+
+```c
+char mul(char a, char b) {
+    char acc; acc = 0;
+    while (b) { acc = acc + a; b = b - 1; }
+    return acc;
+}
+```
+
+#### 3. Single 8-bit data type only
+
+Only `char` (unsigned 8-bit, range 0–255) exists. There are no `int`, `long`, `float`, pointers, structs, enums, or typedefs. Arithmetic that exceeds 255 silently wraps around.
+
+#### 4. At most 3 function arguments
+
+The calling convention passes arguments in registers R0, R1, R2. Functions with more than 3 parameters are a compile error.
+
+#### 5. No initializers for global variables
+
+```c
+char x = 5;    // ✗ initializer on globals is not supported
+char x;        // ✓ declare, then assign in code
+```
+
+Global arrays and scalars are always zero-initialised at load time. Initialise them explicitly inside `main()` or a setup function.
+
+#### 6. Expression nesting depth limited to 4
+
+The code generator uses 4 scratch memory slots (`__tmp0`–`__tmp3`) to hold intermediate values during complex expressions. Nesting more than 4 levels deep (e.g. `(a + (b + (c + (d + e))))`) produces a compile error:
+
+```
+CodeGen error: Expression too complex — nesting exceeds scratch temp limit
+```
+
+Break deeply nested expressions into temporary variables to work around this.
+
+#### 7. No do-while loops
+
+`do { … } while (cond);` is not implemented. Use a `while` loop with a pre-set flag or an explicit first iteration.
+
+#### 8. No `else if` chains
+
+```c
+if (x == 1) { … }
+else if (x == 2) { … }   // ✗ not supported
+```
+
+Use nested `if` / `else` blocks instead:
+
+```c
+if (x == 1) { … }
+else { if (x == 2) { … } }
+```
+
+#### 9. No forward declarations
+
+Functions must be declared (fully defined) before they are called if mutual recursion were attempted — but recursion is already unsupported, so in practice declaring functions before calling them is the natural order.
+
+#### 10. Variable names must not be `data` or `code`
+
+The assembler identifies section boundaries by matching `.data` and `.code` exactly. However, as a convention, avoid naming variables or functions anything that could interact with assembler syntax — specifically the bare strings `data` or `code` without a leading dot could cause issues with older versions of the assembler.
+
+---
+
+### Compiler Example Programs
+
+All examples live in `utils/NoobsC/examples/` and can be compiled and run as shown above.
+
+| File | What it demonstrates | Expected result |
+|---|---|---|
+| `blinky.nc` | Global variable, infinite `while` loop, XOR toggle | LED toggle pattern |
+| `fibonacci.nc` | `while` loop, multiple locals, subtraction | `fib(10)` = 55 (0x37) |
+| `multiply.nc` | `while` loop as repeated addition, function call | `6 × 7` = 42 (0x2A) |
+| `array_fill.nc` | Global array, `for` loop, array indexing | `arr` = [0,1,2,3,4,5,6,7]; `total` = 28 |
+| `bubble_sort.nc` | Nested loops, array read/write, `if`, `break` | Array sorted in ascending order |
+
+---
+
 ## Building and Running
 
 ### Running the Test Suite
@@ -600,6 +835,8 @@ INNER_LOOP: LOAD   R3, TMP_REG3
 
 ## ERRATA
 - Real working example only tested in iCEStick FPGA. Xilinx FPGA still not supported.
+- `SUB Rd, Rs` computes `Rd = Rs − Rd` (second operand minus first), not `Rd − Rs` as listed in the ISA table above. This is a known quirk of the execute-stage wiring (PTR0/PTR1 layout). The NoobsC compiler accounts for this internally by swapping operand evaluation order before emitting `SUB`. Hand-written assembly must do the same.
+- Assembly files (`.asm`) use `#` for line comments. NoobsC source files (`.nc`) use `//` and `/* */` — `#` is not valid in NoobsC source.
 
 ---
 
