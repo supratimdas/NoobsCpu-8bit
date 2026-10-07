@@ -82,13 +82,13 @@ while (<ASM>) {
     if($num_ws == 2) {
         die "unwanted whitespace in : ${inp_asm_file}:${line_num} ==>$line\n";
     }
-    if($line =~ /data/) {       #entry to data section
+    if($line =~ /^\.data$/) {       #entry to data section
         $data_section = 1;
         $code_section = 0;
-    }elsif($line =~ /code/) {   #entry to code section
+    }elsif($line =~ /^\.code$/) {   #entry to code section
         $data_section = 0;
         $code_section = 1;
-    }else{                      #actual data/code 
+    }else{                          #actual data/code
         if($data_section){
             #check if there is any label associated and add it to the hash
             if($line eq "") {
@@ -182,13 +182,13 @@ while (<ASM>) {
         $line = $label_args[1];
     }
 
-    if($line =~ /data/) {       #entry to data section
+    if($line =~ /^\.data$/) {       #entry to data section
         $data_section = 1;
         $code_section = 0;
-    }elsif($line =~ /code/) {   #entry to code section
+    }elsif($line =~ /^\.code$/) {   #entry to code section
         $data_section = 0;
         $code_section = 1;
-    }else{                      #actual data/code 
+    }else{                          #actual data/code
         if($data_section){
             my @elements = split(',', $line);
             foreach my $data_elem (@elements) {

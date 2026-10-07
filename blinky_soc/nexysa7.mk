@@ -11,7 +11,7 @@ $(JSON_FILE) : $(VERILOG_SRCS)
 	$(YOSYS) $(YOSYS_ARGS) -p "synth_xilinx -flatten -arch xc7 -top blinky_soc; write_json $(TARGET_STEM).json " $(VERILOG_SRCS)
 
 $(FASM_FILE) : $(JSON_FILE) $(CHIP_DB) $(XDC_FILE)  
-	nextpnr-xilinx  --chipdb $(CHIP_DB) --xdc $(XDC_FILE) --json $(TARGET_STEM).json --write $(TARGET_STEM)_routed.json --fasm $(FASM_FILE) 
+	nextpnr-xilinx  --chipdb $(CHIP_DB) --xdc $(XDC_FILE) --json $(TARGET_STEM).json --write $(TARGET_STEM)_routed.json --fasm $(FASM_FILE) --router router1 
 
 $(FRAMES_FILE):	$(FASM_FILE)
 	${UTILS_DIR}/fasm2frames.py --part xc7a100tcsg324-1 --db-root ${CHIP_DB_DIR} $(FASM_FILE) > $(FRAMES_FILE)
