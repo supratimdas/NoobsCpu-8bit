@@ -25,10 +25,10 @@ __while_0: NOP
     LOAD R0,__tmp0
     ADD R0,R1
     STORE R0,__mul_acc
+    LOAD R0,__mul_b
+    STORE R0,__tmp0
     XOR R0,R0
     ADDI R0,R0,1
-    STORE R0,__tmp0
-    LOAD R0,__mul_b
     ADDI R1,R0,0
     LOAD R0,__tmp0
     SUB R0,R1

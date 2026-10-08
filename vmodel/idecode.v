@@ -498,9 +498,9 @@ module idecode (
 `endif
                         end
                         else begin
-                            exec_src0_reg_next = `GET_REG_PTR0(curr_inst);
+                            exec_src0_reg_next = `GET_REG_PTR1(curr_inst);
                             exec_src0_reg_rd_en_next = 1'b1;
-                            exec_src1_reg_next = `GET_REG_PTR1(curr_inst);
+                            exec_src1_reg_next = `GET_REG_PTR0(curr_inst);
                             exec_src1_reg_rd_en_next = 1'b1;
                             exec_dst_reg_next = `GET_REG_PTR1(curr_inst);
 `ifndef SYNTHESIS

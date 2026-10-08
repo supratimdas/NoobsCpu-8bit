@@ -32,10 +32,10 @@ __while_0: NOP
     STORE R0,__fib_b
     LOAD R0,__fib_tmp
     STORE R0,__fib_a
+    LOAD R0,__fib_n
+    STORE R0,__tmp0
     XOR R0,R0
     ADDI R0,R0,1
-    STORE R0,__tmp0
-    LOAD R0,__fib_n
     ADDI R1,R0,0
     LOAD R0,__tmp0
     SUB R0,R1

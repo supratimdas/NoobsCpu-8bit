@@ -454,10 +454,9 @@ void idecode(){
                         exec_params.dst_reg = GET_REG_PTR1(instruction);
                         debug_printf("{IDECODE: SUBI: src0_val = %u, dst_reg = %u} ",exec_params.src0_val,exec_params.dst_reg);
                     }else{
-                        exec_params.src0_val = GET_REG_VALUE(GET_REG_PTR0(instruction));
-                        exec_params.src1_val = GET_REG_VALUE(GET_REG_PTR1(instruction));
-                        //exec_params.src0_reg = GET_REG_PTR0(instruction);
-                        //exec_params.src1_reg = GET_REG_PTR1(instruction);
+                        exec_params.src0_val = GET_REG_VALUE(GET_REG_PTR1(instruction));
+                        exec_params.src1_val = GET_REG_VALUE(GET_REG_PTR0(instruction));
+                        exec_params.dst_reg  = GET_REG_PTR1(instruction);
                         debug_printf("{IDECODE: SUB: src0_val = %u, src1_val = %u, dst_reg = %u} ",exec_params.src0_val,exec_params.src1_val,exec_params.dst_reg);
                     }
 

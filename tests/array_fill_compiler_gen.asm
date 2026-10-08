@@ -21,7 +21,7 @@ __for_0: NOP
     ADDI R0,R0,8
     ADDI R1,R0,0
     LOAD R0,__tmp0
-    SUB R1,R0
+    SUB R0,R1
     JMPOVF __cmp_skip_2
     JMPNC __for_end_1
 __cmp_skip_2: NOP
@@ -53,7 +53,7 @@ __for_3: NOP
     ADDI R0,R0,8
     ADDI R1,R0,0
     LOAD R0,__tmp0
-    SUB R1,R0
+    SUB R0,R1
     JMPOVF __cmp_skip_5
     JMPNC __for_end_4
 __cmp_skip_5: NOP

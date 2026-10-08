@@ -1,5 +1,5 @@
 .data
-    arr:0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+    data:0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
     sorted:0x00
     __sort_i:0x00
     __sort_j:0x00
@@ -20,7 +20,7 @@ __init: NOP
     ADDI R3,R0,0
     LOAD R0,__tmp0
     SET_ADR_MODE
-    STORE R0,arr
+    STORE R0,data
     RST_ADR_MODE
     XOR R0,R0
     ADDI R0,R0,1
@@ -30,7 +30,7 @@ __init: NOP
     ADDI R3,R0,0
     LOAD R0,__tmp0
     SET_ADR_MODE
-    STORE R0,arr
+    STORE R0,data
     RST_ADR_MODE
     XOR R0,R0
     ADDI R0,R0,8
@@ -40,7 +40,7 @@ __init: NOP
     ADDI R3,R0,0
     LOAD R0,__tmp0
     SET_ADR_MODE
-    STORE R0,arr
+    STORE R0,data
     RST_ADR_MODE
     XOR R0,R0
     ADDI R0,R0,2
@@ -50,7 +50,7 @@ __init: NOP
     ADDI R3,R0,0
     LOAD R0,__tmp0
     SET_ADR_MODE
-    STORE R0,arr
+    STORE R0,data
     RST_ADR_MODE
     XOR R0,R0
     ADDI R0,R0,15
@@ -60,7 +60,7 @@ __init: NOP
     ADDI R3,R0,0
     LOAD R0,__tmp0
     SET_ADR_MODE
-    STORE R0,arr
+    STORE R0,data
     RST_ADR_MODE
     XOR R0,R0
     ADDI R0,R0,7
@@ -70,7 +70,7 @@ __init: NOP
     ADDI R3,R0,0
     LOAD R0,__tmp0
     SET_ADR_MODE
-    STORE R0,arr
+    STORE R0,data
     RST_ADR_MODE
     XOR R0,R0
     ADDI R0,R0,4
@@ -80,7 +80,7 @@ __init: NOP
     ADDI R3,R0,0
     LOAD R0,__tmp0
     SET_ADR_MODE
-    STORE R0,arr
+    STORE R0,data
     RST_ADR_MODE
     XOR R0,R0
     ADDI R0,R0,9
@@ -90,7 +90,7 @@ __init: NOP
     ADDI R3,R0,0
     LOAD R0,__tmp0
     SET_ADR_MODE
-    STORE R0,arr
+    STORE R0,data
     RST_ADR_MODE
     RET
 __sort: NOP
@@ -103,7 +103,7 @@ __while_0: NOP
     ADDI R0,R0,8
     ADDI R1,R0,0
     LOAD R0,__tmp0
-    SUB R1,R0
+    SUB R0,R1
     JMPOVF __cmp_skip_2
     JMPNC __while_end_1
 __cmp_skip_2: NOP
@@ -118,7 +118,7 @@ __while_3: NOP
     ADDI R0,R0,7
     ADDI R1,R0,0
     LOAD R0,__tmp0
-    SUB R1,R0
+    SUB R0,R1
     JMPOVF __cmp_skip_5
     JMPNC __while_end_4
 __cmp_skip_5: NOP
@@ -131,24 +131,24 @@ __cmp_skip_5: NOP
     ADD R0,R1
     ADDI R3,R0,0
     SET_ADR_MODE
-    LOAD R0,arr
+    LOAD R0,data
     RST_ADR_MODE
     STORE R0,__tmp0
     LOAD R0,__sort_j
     ADDI R3,R0,0
     SET_ADR_MODE
-    LOAD R0,arr
+    LOAD R0,data
     RST_ADR_MODE
     ADDI R1,R0,0
     LOAD R0,__tmp0
-    SUB R1,R0
+    SUB R0,R1
     JMPOVF __cmp_skip_7
     JMPNC __if_end_6
 __cmp_skip_7: NOP
     LOAD R0,__sort_j
     ADDI R3,R0,0
     SET_ADR_MODE
-    LOAD R0,arr
+    LOAD R0,data
     RST_ADR_MODE
     STORE R0,__sort_tmp
     LOAD R0,__sort_j
@@ -160,14 +160,14 @@ __cmp_skip_7: NOP
     ADD R0,R1
     ADDI R3,R0,0
     SET_ADR_MODE
-    LOAD R0,arr
+    LOAD R0,data
     RST_ADR_MODE
     STORE R0,__tmp0
     LOAD R0,__sort_j
     ADDI R3,R0,0
     LOAD R0,__tmp0
     SET_ADR_MODE
-    STORE R0,arr
+    STORE R0,data
     RST_ADR_MODE
     LOAD R0,__sort_tmp
     STORE R0,__tmp0
@@ -181,7 +181,7 @@ __cmp_skip_7: NOP
     ADDI R3,R0,0
     LOAD R0,__tmp0
     SET_ADR_MODE
-    STORE R0,arr
+    STORE R0,data
     RST_ADR_MODE
     XOR R0,R0
     ADDI R0,R0,1

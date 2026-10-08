@@ -30,9 +30,9 @@ INNER_LOOP: LOAD R3, TMP_REG3
             JMPOVF OUTER_LOOP
             HALT
 
-SORT_N_STORE:       STORE R1,TMP_REG1
-                    SUB R1,R0
-                    LOAD R1,TMP_REG1
+SORT_N_STORE:       STORE R0,TMP_REG1
+                    SUB R0,R1
+                    LOAD R0,TMP_REG1
                     JMPOVF NO_SWAP
                     STORE R0,2
                     LOAD R0,1

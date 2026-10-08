@@ -376,22 +376,12 @@ class CodeGen:
             if mnem is None:
                 raise CodeGenError(f"Unsupported compound op: {node.op}",
                                    node.line, node.col)
-            if base == '-':
-                # SUB R0,R1 = R1-R0; need R1=LHS, R0=RHS to get LHS-RHS.
-                self._gen_expr(node.value)          # RHS → R0
-                slot = self._push_tmp()             # save RHS
-                self._gen_expr(node.target)         # LHS → R0
-                self._emit('    ADDI R1,R0,0')      # R1 = LHS
-                self._emit(f'    LOAD R0,{slot}')   # R0 = RHS
-                self._pop_tmp()
-                self._emit('    SUB R0,R1')          # R0 = R1-R0 = LHS-RHS
-            else:
-                self._gen_expr(node.value)          # RHS → R0
-                slot = self._push_tmp()             # save RHS
-                self._gen_expr(node.target)         # load current LHS → R0
-                self._emit(f'    LOAD R1,{slot}')   # R1 = RHS
-                self._pop_tmp()
-                self._emit(f'    {mnem} R0,R1')     # R0 = LHS op RHS
+            self._gen_expr(node.value)          # RHS → R0
+            slot = self._push_tmp()             # save RHS
+            self._gen_expr(node.target)         # load current LHS → R0
+            self._emit(f'    LOAD R1,{slot}')   # R1 = RHS
+            self._pop_tmp()
+            self._emit(f'    {mnem} R0,R1')     # R0 = LHS op RHS (SUB: R0=R0-R1=LHS-RHS)
             self._store_target(node.target)
 
     def _store_target(self, target: Node):
@@ -413,24 +403,13 @@ class CodeGen:
         op = node.op
         mnem = _REG_OP.get(op)
         if mnem:
-            if op == '-':
-                # SUB R0,R1 = R1-R0 (second arg - first arg).
-                # To get left-right we need R1=left, R0=right before the instruction.
-                self._gen_expr(node.right)         # R0 = right
-                slot = self._push_tmp()            # save right
-                self._gen_expr(node.left)          # R0 = left
-                self._emit('    ADDI R1,R0,0')     # R1 = left
-                self._emit(f'    LOAD R0,{slot}')  # R0 = right
-                self._pop_tmp()
-                self._emit('    SUB R0,R1')        # R0 = R1-R0 = left-right
-            else:
-                self._gen_expr(node.left)
-                slot = self._push_tmp()             # save left
-                self._gen_expr(node.right)
-                self._emit('    ADDI R1,R0,0')      # R1 = right
-                self._emit(f'    LOAD R0,{slot}')   # R0 = left
-                self._pop_tmp()
-                self._emit(f'    {mnem} R0,R1')     # R0 = left op right
+            self._gen_expr(node.left)
+            slot = self._push_tmp()             # save left
+            self._gen_expr(node.right)
+            self._emit('    ADDI R1,R0,0')      # R1 = right
+            self._emit(f'    LOAD R0,{slot}')   # R0 = left
+            self._pop_tmp()
+            self._emit(f'    {mnem} R0,R1')     # R0 = left op right (SUB: R0=R0-R1=left-right)
         elif op in ('*', '/', '%'):
             raise CodeGenError(
                 f"'{op}' not supported — implement multiply/divide as a function",
@@ -482,13 +461,10 @@ class CodeGen:
 
         if isinstance(cond, BinOp) and cond.op in ('==', '!=', '<', '>', '<=', '>='):
             op = cond.op
-            # For > and <=: swap operands so OVF logic still works.
-            # After swap: R0 = right, R1 = left.  SUB R0,R1 = right - left.
-            # OVF means right < left, i.e. left > right.
-            # SUB R1,R0 writes to R1 (first arg) the value src0-src1 = R0-R1.
-            # No-swap (<, ==, !=): R0=left, R1=right → R1=left-right, OVF=1 when left<right.
-            # Swap (>, <=):        R0=right, R1=left → R1=right-left, OVF=1 when right<left
-            #                      i.e. OVF=1 when left>right.
+            # SUB R0,R1 = R0-R1 (first arg minus second arg), result in R0.
+            # No-swap (<, ==, !=, >=): R0=left, R1=right → R0=left-right, OVF=1 when left<right.
+            # Swap (>, <=): load right→R0, left→R1, then R0=right-left, OVF=1 when right<left
+            #               i.e. OVF=1 when left>right.
             if op in ('>', '<='):
                 self._gen_expr(cond.right)
                 slot = self._push_tmp()
@@ -503,7 +479,7 @@ class CodeGen:
                 self._emit('    ADDI R1,R0,0')
                 self._emit(f'    LOAD R0,{slot}')
                 self._pop_tmp()
-            self._emit('    SUB R1,R0')
+            self._emit('    SUB R0,R1')
 
             if op == '==':
                 self._emit(f'    JMPNZ {false_lbl}')

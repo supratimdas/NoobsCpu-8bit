@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Building a Compiler from Scratch — The NoobsC Guide</title>
+<style>
+  :root {
+    --bg:       #0f1117;
+    --panel:    #1a1d27;
+    --border:   #2e3250;
+    --accent:   #7c6af7;
+    --accent2:  #4fc3f7;
+    --accent3:  #81c784;
+    --warn:     #ffb74d;
+    --red:      #ef5350;
+    --text:     #e2e4f0;
+    --muted:    #8b90b0;
+    --code-bg:  #12151f;
+    --tag-fn:   #c792ea;
+    --tag-kw:   #89ddff;
+    --tag-str:  #c3e88d;
+    --tag-num:  #f78c6c;
+    --tag-cmt:  #546e7a;
+    --tag-lbl:  #ffcb6b;
+    --tag-reg:  #f07178;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  /* ── Layout ── */
+  .page-wrap { display: flex; min-height: 100vh; }
+
+  nav {
+    width: 270px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  nav .logo {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  nav .logo h2 { font-size: 14px; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+  nav .logo p  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  nav a {
+    display: block;
+    padding: 6px 20px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    border-left: 2px solid transparent;
+    transition: all .15s;
+  }
+  nav a:hover  { color: var(--text); border-left-color: var(--accent); background: rgba(124,106,247,.06); }
+  nav .nav-phase { font-size: 11px; color: var(--accent); letter-spacing: .1em; text-transform: uppercase; padding: 14px 20px 4px; font-weight: 700; }
+
+  main { flex: 1; padding: 48px 60px 80px; max-width: 960px; }
+
+  /* ── Typography ── */
+  h1 { font-size: 2.6rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.15;
+       background: linear-gradient(135deg, var(--accent), var(--accent2));
+       -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  h2 { font-size: 1.7rem; font-weight: 700; margin: 56px 0 20px; color: var(--text);
+       padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.15rem; font-weight: 700; margin: 32px 0 12px; color: var(--accent2); }
+  h4 { font-size: .95rem; font-weight: 700; margin: 20px 0 8px; color: var(--accent); }
+  p  { margin: 12px 0; color: var(--text); }
+
+  .subtitle { font-size: 1.1rem; color: var(--muted); margin-top: 8px; }
+  .lead     { font-size: 1.05rem; color: var(--text); max-width: 700px; line-height: 1.9; margin: 24px 0 32px; }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ── Code blocks ── */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    overflow-x: auto;
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 16px 0;
+    position: relative;
+  }
+  pre .label {
+    position: absolute; top: 8px; right: 12px;
+    font-size: 10px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  }
+
+  code { font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: .88em; }
+  p code, li code {
+    background: rgba(124,106,247,.15);
+    color: var(--accent2);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* Syntax highlight spans */
+  .kw  { color: var(--tag-kw); }
+  .fn  { color: var(--tag-fn); }
+  .str { color: var(--tag-str); }
+  .num { color: var(--tag-num); }
+  .cmt { color: var(--tag-cmt); font-style: italic; }
+  .lbl { color: var(--tag-lbl); font-weight: 600; }
+  .reg { color: var(--tag-reg); font-weight: 600; }
+  .op  { color: #89ddff; }
+  .hl  { background: rgba(124,106,247,.18); border-radius: 2px; }
+  .err { color: var(--red); font-weight: 700; }
+  .fix { color: var(--accent3); font-weight: 700; }
+
+  /* ── Callout boxes ── */
+  .box {
+    border-radius: 8px; padding: 18px 22px; margin: 20px 0;
+    border-left: 4px solid;
+  }
+  .box.theory  { background: rgba(124,106,247,.08); border-color: var(--accent);  }
+  .box.example { background: rgba(79,195,247,.07);  border-color: var(--accent2); }
+  .box.insight { background: rgba(129,199,132,.07); border-color: var(--accent3); }
+  .box.warning { background: rgba(255,183,77,.07);  border-color: var(--warn);    }
+  .box.bug     { background: rgba(239,83,80,.08);   border-color: var(--red);     }
+
+  .box .box-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .1em; margin-bottom: 8px;
+  }
+  .box.theory  .box-title { color: var(--accent);  }
+  .box.example .box-title { color: var(--accent2); }
+  .box.insight .box-title { color: var(--accent3); }
+  .box.warning .box-title { color: var(--warn);    }
+  .box.bug     .box-title { color: var(--red);     }
+
+  /* ── Pipeline diagram ── */
+  .pipeline {
+    display: flex; align-items: center; gap: 0; margin: 28px 0;
+    flex-wrap: wrap;
+  }
+  .pipeline-step {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 18px;
+    text-align: center; min-width: 110px;
+  }
+  .pipeline-step .phase { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .pipeline-step .name  { font-size: 14px; font-weight: 700; margin-top: 2px; }
+  .pipeline-step .input { font-size: 11px; color: var(--accent2); margin-top: 4px; }
+  .pipeline-arrow { font-size: 20px; color: var(--muted); padding: 0 8px; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13.5px; }
+  th { background: var(--panel); color: var(--accent2); font-weight: 700; text-align: left;
+       padding: 10px 14px; border-bottom: 2px solid var(--border); }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+
+  /* ── Section badge ── */
+  .section-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+  }
+
+  /* ── Step list ── */
+  .steps { list-style: none; padding: 0; }
+  .steps li {
+    display: flex; gap: 16px; margin: 12px 0; align-items: flex-start;
+  }
+  .steps .num {
+    flex-shrink: 0; width: 28px; height: 28px;
+    background: var(--accent); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #fff;
+  }
+
+  ul, ol { padding-left: 22px; margin: 10px 0; }
+  li { margin: 5px 0; }
+
+  /* ── TOC highlight ── */
+  .toc-phase { color: var(--accent) !important; font-weight: 700; font-size: 12px !important; }
+
+  .register-box {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(240,113,120,.15); border: 1px solid var(--tag-reg);
+    border-radius: 4px; padding: 2px 8px;
+    font-family: monospace; font-size: 13px; font-weight: 700; color: var(--tag-reg);
+  }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 16px 0; }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+<!-- ── Sidebar nav ── -->
+<nav>
+  <div class="logo">
+    <h2>NoobsC Compiler</h2>
+    <p>A Compiler Design Walkthrough</p>
+  </div>
+  <a href="#intro">Introduction</a>
+  <a href="#architecture">Target Architecture</a>
+  <div class="nav-phase">Phase 1</div>
+  <a href="#lexer">Lexical Analysis</a>
+  <a href="#lexer-tokens">Token Types</a>
+  <a href="#lexer-maxmunch">Maximal Munch</a>
+  <div class="nav-phase">Phase 2</div>
+  <a href="#parser">Parsing</a>
+  <a href="#parser-grammar">The Grammar</a>
+  <a href="#parser-ast">AST Nodes</a>
+  <a href="#parser-rd">Recursive Descent</a>
+  <div class="nav-phase">Phase 3</div>
+  <a href="#semantic">Semantic Analysis</a>
+  <a href="#semantic-symbols">Symbol Tables</a>
+  <a href="#semantic-scopes">Scopes</a>
+  <a href="#semantic-checks">What Gets Checked</a>
+  <div class="nav-phase">Phase 4</div>
+  <a href="#codegen">Code Generation</a>
+  <a href="#codegen-isa">ISA Deep Dive</a>
+  <a href="#codegen-regs">Register Roles</a>
+  <a href="#codegen-expr">Expressions</a>
+  <a href="#codegen-control">Control Flow</a>
+  <a href="#codegen-calls">Function Calls</a>
+  <a href="#codegen-arrays">Array Access</a>
+  <div class="nav-phase">Phase 5</div>
+  <a href="#assembler">Assembly</a>
+  <a href="#assembler-twopass">Two-Pass Design</a>
+  <a href="#assembler-encode">Instruction Encoding</a>
+  <div class="nav-phase">Debugging</div>
+  <a href="#bugs">Real Compiler Bugs</a>
+  <a href="#bugs-sub">The SUB Bug</a>
+  <a href="#bugs-asm">The Assembler Bug</a>
+  <a href="#summary">Summary</a>
+</nav>
+
+<!-- ── Main content ── -->
+<main>
+
+<!-- ══════════════════════════════════════════════════════════════
+     INTRODUCTION
+     ══════════════════════════════════════════════════════════════ -->
+<section id="intro">
+  <h1>Building a Compiler<br>from Scratch</h1>
+  <p class="subtitle">A step-by-step walkthrough using the NoobsC compiler targeting a real 8-bit CPU</p>
+
+  <p class="lead">
+    A compiler is just a program that reads text in one language and produces equivalent text (or binary)
+    in another. This guide walks every stage of the NoobsC compiler — from reading raw characters
+    all the way down to machine-code bytes — with concrete examples from a real, working codebase.
+  </p>
+
+  <h3>The Full Pipeline</h3>
+
+  <div class="pipeline">
+    <div class="pipeline-step">
+      <div class="phase">Phase 1</div>
+      <div class="name" style="color:var(--tag-kw)">Lexer</div>
+      <div class="input">chars → tokens</div>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-step">
+      <div class="phase">Phase 2</div>
+      <div class="name" style="color:var(--tag-fn)">Parser</div>
+      <div class="input">tokens → AST</div>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-step">
+      <div class="phase">Phase 3</div>
+      <div class="name" style="color:var(--tag-str)">Semantic</div>
+      <div class="input">AST → symbols</div>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-step">
+      <div class="phase">Phase 4</div>
+      <div class="name" style="color:var(--tag-num)">CodeGen</div>
+      <div class="input">AST → assembly</div>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-step">
+      <div class="phase">Phase 5</div>
+      <div class="name" style="color:var(--warn)">Assembler</div>
+      <div class="input">asm → bytes</div>
+    </div>
+  </div>
+
+  <p>Each phase has a single, well-defined input and output. You can test each one independently,
+     which makes debugging much easier. Let's trace a real program through all five phases.</p>
+
+  <div class="box example">
+    <div class="box-title">Running Example</div>
+    We'll use this Fibonacci program throughout the guide:
+<pre><code><span class="kw">char</span> result;
+
+<span class="kw">char</span> <span class="fn">fib</span>(<span class="kw">char</span> n) {
+    <span class="kw">char</span> a; <span class="kw">char</span> b; <span class="kw">char</span> tmp;
+    a = <span class="num">0</span>; b = <span class="num">1</span>;
+    <span class="kw">while</span> (n) {
+        tmp = b;
+        b = a + b;
+        a = tmp;
+        n = n - <span class="num">1</span>;
+    }
+    <span class="kw">return</span> a;
+}
+
+<span class="kw">void</span> <span class="fn">main</span>() {
+    result = <span class="fn">fib</span>(<span class="num">10</span>);   <span class="cmt">// result = 55</span>
+}</code><span class="label">NoobsC source</span></pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     ARCHITECTURE
+     ══════════════════════════════════════════════════════════════ -->
+<section id="architecture">
+  <span class="section-badge">Background</span>
+  <h2>The Target Architecture: NoobsCpu-8bit</h2>
+
+  <p>Before writing a compiler you must <em>deeply understand</em> the machine you're targeting.
+     Every code generation decision flows from the hardware.</p>
+
+  <div class="two-col">
+    <div>
+      <h4>Hardware Specs</h4>
+      <ul>
+        <li><strong>4 registers:</strong> R0, R1, R2, R3 (8-bit each)</li>
+        <li><strong>Harvard architecture:</strong> separate instruction and data memory</li>
+        <li><strong>2 KB instruction memory</strong>, <strong>2 KB data memory</strong></li>
+        <li><strong>8-bit data bus</strong> — all values 0–255</li>
+        <li><strong>3-stage pipeline:</strong> Fetch → Decode → Execute</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Status Register (SR)</h4>
+      <table>
+        <tr><th>Bit</th><th>Flag</th><th>Set when</th></tr>
+        <tr><td>SR[3]</td><td>Z</td><td>result == 0</td></tr>
+        <tr><td>SR[2]</td><td>NZ</td><td>result != 0</td></tr>
+        <tr><td>SR[0]</td><td>OVF</td><td>subtraction borrowed (underflow)</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h3>The Instruction Set — What Matters Most</h3>
+
+  <table>
+    <tr><th>Instruction</th><th>What it does</th><th>Flags updated</th></tr>
+    <tr><td><code>ADDI Rd,Rs,imm</code></td><td>Rd = Rs + imm</td><td>Z, NZ</td></tr>
+    <tr><td><code>SUBI Rd,Rs,imm</code></td><td>Rd = Rs − imm</td><td>Z, NZ, OVF</td></tr>
+    <tr><td><code>ADD  Rd,Rs</code></td><td>Rd = Rd + Rs (commutative)</td><td>Z, NZ</td></tr>
+    <tr><td><code>SUB  Rd,Rs</code></td><td>Rd = Rd − Rs</td><td>Z, NZ, OVF</td></tr>
+    <tr><td><code>XOR  Rd,Rs</code></td><td>Rd = Rd XOR Rs</td><td>Z, NZ</td></tr>
+    <tr><td><code>LOAD  Rd,label</code></td><td>Rd = Memory[label]</td><td>—</td></tr>
+    <tr><td><code>STORE Rd,label</code></td><td>Memory[label] = Rd</td><td>—</td></tr>
+    <tr><td><code>JMPZ  label</code></td><td>Jump if Z=1 (result was zero)</td><td>SR cleared after</td></tr>
+    <tr><td><code>JMPNZ label</code></td><td>Jump if NZ=1 (result was non-zero)</td><td>SR cleared after</td></tr>
+    <tr><td><code>JMPOVF label</code></td><td>Jump if OVF=1 (subtraction underflowed)</td><td>SR cleared after</td></tr>
+    <tr><td><code>JMPNC label</code></td><td>Unconditional jump</td><td>SR cleared after</td></tr>
+    <tr><td><code>CALLNC label</code></td><td>Unconditional call (push return address)</td><td>—</td></tr>
+    <tr><td><code>RET</code></td><td>Return from call</td><td>SR cleared</td></tr>
+    <tr><td><code>SET_ADR_MODE</code></td><td>Enable indexed addressing: addr+R3</td><td>—</td></tr>
+    <tr><td><code>RST_ADR_MODE</code></td><td>Disable indexed addressing</td><td>—</td></tr>
+  </table>
+
+  <div class="box insight">
+    <div class="box-title">SUB follows the conventional Rd = Rd − Rs rule</div>
+    <p><code>SUB R0,R1</code> computes <code>R0 = R0 − R1</code>, storing the result back in the
+       first operand — the same convention as most ISAs. The OVF flag is set whenever the
+       result underflows (borrows), making it useful for comparisons. See the Debugging section
+       for the historical ISA bug that required an earlier codegen workaround.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PHASE 1: LEXER
+     ══════════════════════════════════════════════════════════════ -->
+<section id="lexer">
+  <span class="section-badge">Phase 1</span>
+  <h2>Lexical Analysis — The Lexer</h2>
+
+  <div class="box theory">
+    <div class="box-title">Theory</div>
+    <p>Source code is just a long string of characters. The lexer (also called a <em>scanner</em>
+       or <em>tokenizer</em>) groups those characters into meaningful units called <strong>tokens</strong>.
+       Think of it like identifying words and punctuation in a sentence before you try to understand the grammar.</p>
+  </div>
+
+  <div class="box example">
+    <div class="box-title">Concrete Example</div>
+    <p>The input <code>n = n - 1;</code> becomes:</p>
+<pre><code><span class="fn">Token</span>(IDENT,   <span class="str">"n"</span>  , 1:1)
+<span class="fn">Token</span>(EQ,            1:3)
+<span class="fn">Token</span>(IDENT,   <span class="str">"n"</span>  , 1:5)
+<span class="fn">Token</span>(MINUS,         1:7)
+<span class="fn">Token</span>(INT_LIT, <span class="num">1</span>    , 1:9)
+<span class="fn">Token</span>(SEMI,          1:10)</code><span class="label">Token stream</span></pre>
+    <p>The parser sees this clean flat list — it never has to worry about whitespace, comments, or character offsets.</p>
+  </div>
+
+  <h3 id="lexer-tokens">Token Types</h3>
+  <p>Every token has a <strong>type</strong> (what kind of thing is it?), an optional <strong>value</strong>
+     (what exactly is it?), and a <strong>source location</strong> (line and column, for error messages).</p>
+
+  <table>
+    <tr><th>Category</th><th>Examples</th><th>Token type</th></tr>
+    <tr><td>Integer literals</td><td><code>42</code>, <code>0xFF</code>, <code>0b1010</code></td><td><code>INT_LIT</code></td></tr>
+    <tr><td>Character literals</td><td><code>'A'</code>, <code>'\n'</code></td><td><code>CHAR_LIT</code></td></tr>
+    <tr><td>Identifiers</td><td><code>result</code>, <code>fib</code>, <code>my_var</code></td><td><code>IDENT</code></td></tr>
+    <tr><td>Keywords</td><td><code>char</code>, <code>void</code>, <code>while</code>, <code>return</code></td><td><code>KW_CHAR</code>, etc.</td></tr>
+    <tr><td>Operators</td><td><code>+</code>, <code>-</code>, <code>==</code>, <code>&&</code>, <code>++</code></td><td><code>PLUS</code>, etc.</td></tr>
+    <tr><td>Punctuation</td><td><code>(</code>, <code>)</code>, <code>{</code>, <code>;</code>, <code>,</code></td><td><code>LPAREN</code>, etc.</td></tr>
+  </table>
+
+  <h3 id="lexer-maxmunch">Maximal Munch Rule</h3>
+  <div class="box theory">
+    <div class="box-title">Theory — Maximal Munch</div>
+    <p>When two rules could match at the same position, always take the <strong>longest match</strong>.
+       This rule resolves ambiguities that would otherwise require the lexer to guess.</p>
+  </div>
+
+<pre><code><span class="cmt">// "++": one PLUS_PLUS token, not two PLUS tokens</span>
+i++
+<span class="op">→</span> IDENT("i"), PLUS_PLUS
+
+<span class="cmt">// "<=": one LT_EQ token, not LT then EQ</span>
+j &lt;= 7
+<span class="op">→</span> IDENT("j"), LT_EQ, INT_LIT(7)
+
+<span class="cmt">// "charter": full identifier, not KW_CHAR + IDENT("ter")</span>
+charter
+<span class="op">→</span> IDENT("charter")</code><span class="label">Maximal munch examples</span></pre>
+
+  <p>The trick is <strong>peeking ahead one character</strong> before deciding which token to emit:</p>
+
+<pre><code><span class="kw">if</span> ch == <span class="str">'+'</span>:
+    <span class="kw">if</span> self._match(<span class="str">'+'</span>): <span class="kw">return</span> <span class="fn">Token</span>(PLUS_PLUS)   <span class="cmt"># consumed ++</span>
+    <span class="kw">if</span> self._match(<span class="str">'='</span>): <span class="kw">return</span> <span class="fn">Token</span>(PLUS_EQ)    <span class="cmt"># consumed +=</span>
+    <span class="kw">return</span> <span class="fn">Token</span>(PLUS)                              <span class="cmt"># just +</span></code><span class="label">lexer.py — maximal munch for '+'</span></pre>
+
+  <h3>What the Lexer Throws Away</h3>
+  <p>The lexer discards whitespace and comments — they're meaningful to humans but irrelevant to grammar.
+     NoobsC supports both line comments (<code>// …</code>) and block comments (<code>/* … */</code>).
+     <em>Note: the lexer does NOT support <code>#</code> comments — a common mistake when writing
+     example programs manually.</em></p>
+
+  <h3>Why Keywords Are Identifiers First</h3>
+  <p>Keywords like <code>while</code> and <code>char</code> match the same pattern as identifiers
+     (<code>[a-zA-Z_][a-zA-Z0-9_]*</code>). The lexer scans the full word first, then looks it up
+     in a keyword table to decide the token type. This naturally implements maximal munch for keywords.</p>
+
+<pre><code><span class="kw">def</span> <span class="fn">_scan_ident_or_keyword</span>(self) -> Token:
+    text = <span class="str">''</span>
+    <span class="kw">while</span> self._peek() <span class="kw">and</span> (self._peek().isalnum() <span class="kw">or</span> self._peek() == <span class="str">'_'</span>):
+        text += self._advance()
+    tt = KEYWORDS.get(text, TokenType.IDENT)  <span class="cmt"># keyword? or plain ident?</span>
+    <span class="kw">return</span> <span class="fn">Token</span>(tt, text <span class="kw">if</span> tt <span class="kw">is</span> TokenType.IDENT <span class="kw">else</span> <span class="kw">None</span>, line, col)</code><span class="label">lexer.py</span></pre>
+
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PHASE 2: PARSER
+     ══════════════════════════════════════════════════════════════ -->
+<section id="parser">
+  <span class="section-badge">Phase 2</span>
+  <h2>Parsing — Building the AST</h2>
+
+  <div class="box theory">
+    <div class="box-title">Theory</div>
+    <p>The parser reads the flat token stream and builds a <strong>tree</strong> that captures the
+       hierarchical structure of the program. This tree is called the <strong>Abstract Syntax Tree (AST)</strong>.
+       It is "abstract" because it omits details like parentheses and semicolons — those were only
+       needed to define structure unambiguously, and the tree already encodes that structure.</p>
+  </div>
+
+  <h3 id="parser-grammar">The Grammar</h3>
+  <p>A grammar is a precise description of what sequences of tokens form valid programs.
+     We use <strong>EBNF (Extended Backus-Naur Form)</strong> notation:</p>
+
+<pre><code><span class="cmt">── Top-level ──────────────────────────────────────────────</span>
+program     → declaration*
+
+declaration → var_decl | func_decl
+
+<span class="cmt">── Declarations ───────────────────────────────────────────</span>
+var_decl    → <span class="kw">'char'</span> IDENT (<span class="kw">'['</span> INT_LIT <span class="kw">']'</span>)? (<span class="kw">'='</span> expr)? <span class="kw">';'</span>
+func_decl   → (<span class="kw">'char'</span> | <span class="kw">'void'</span>) IDENT <span class="kw">'('</span> param_list? <span class="kw">')'</span> block
+
+<span class="cmt">── Statements ─────────────────────────────────────────────</span>
+statement   → var_decl | if_stmt | while_stmt | for_stmt
+            | return_stmt | break_stmt | expr_stmt
+
+<span class="cmt">── Expressions (lowest to highest precedence) ──────────────</span>
+expr        → assign
+assign      → logical_or (assign_op assign)?        <span class="cmt">← right-assoc</span>
+logical_or  → logical_and (<span class="kw">'||'</span> logical_and)*
+logical_and → bitwise_or  (<span class="kw">'&&'</span> bitwise_or)*
+bitwise_or  → bitwise_xor (<span class="kw">'|'</span>  bitwise_xor)*
+bitwise_xor → bitwise_and (<span class="kw">'^'</span>  bitwise_and)*
+bitwise_and → equality    (<span class="kw">'&'</span>  equality)*
+equality    → relational  ((<span class="kw">'=='</span>|<span class="kw">'!='</span>) relational)*
+relational  → additive    ((<span class="kw">'&lt;'</span>|<span class="kw">'&gt;'</span>|<span class="kw">'&lt;='</span>|<span class="kw">'&gt;='</span>) additive)*
+additive    → multiply    ((<span class="kw">'+'</span>|<span class="kw">'-'</span>) multiply)*
+multiply    → unary       ((<span class="kw">'*'</span>|<span class="kw">'/'</span>|<span class="kw">'%'</span>) unary)*
+unary       → (<span class="kw">'!'</span>|<span class="kw">'~'</span>|<span class="kw">'-'</span>) unary | postfix
+postfix     → primary (<span class="kw">'++'</span>|<span class="kw">'--'</span>)?
+primary     → INT_LIT | CHAR_LIT | IDENT | IDENT<span class="kw">'['</span>expr<span class="kw">']'</span>
+            | IDENT<span class="kw">'('</span>args<span class="kw">')'</span> | <span class="kw">'('</span>expr<span class="kw">')'</span></code><span class="label">NoobsC Grammar (EBNF)</span></pre>
+
+  <div class="box insight">
+    <div class="box-title">Why Does Operator Precedence Come From Grammar Structure?</div>
+    <p>Notice that <code>+</code> is deeper in the grammar than <code>||</code>.
+       This means <code>a || b + c</code> will be parsed as <code>a || (b + c)</code>,
+       not <code>(a || b) + c</code> — exactly what we expect from standard math precedence.
+       <em>The grammar encodes precedence through nesting depth</em>. The lower in the grammar
+       tree a rule appears, the more tightly it binds.</p>
+  </div>
+
+  <h3 id="parser-ast">AST Node Types</h3>
+  <p>Each grammar rule maps to one or more AST node classes:</p>
+
+  <table>
+    <tr><th>AST Node</th><th>Fields</th><th>Example source</th></tr>
+    <tr><td><code>Program</code></td><td>list of declarations</td><td>whole file</td></tr>
+    <tr><td><code>FuncDecl</code></td><td>name, params, body block, return_type</td><td><code>char fib(char n) {…}</code></td></tr>
+    <tr><td><code>VarDecl</code></td><td>name, size (1 or N for arrays), init</td><td><code>char a;</code></td></tr>
+    <tr><td><code>WhileStmt</code></td><td>cond, body</td><td><code>while (n) {…}</code></td></tr>
+    <tr><td><code>IfStmt</code></td><td>cond, then_block, else_block?</td><td><code>if (x&gt;y) {…}</code></td></tr>
+    <tr><td><code>Assign</code></td><td>target, op ('=' or '+='), value</td><td><code>n = n - 1</code></td></tr>
+    <tr><td><code>BinOp</code></td><td>left, op, right</td><td><code>a + b</code></td></tr>
+    <tr><td><code>FuncCall</code></td><td>name, args list</td><td><code>fib(10)</code></td></tr>
+    <tr><td><code>ArrayIndex</code></td><td>name, index expr</td><td><code>data[j]</code></td></tr>
+    <tr><td><code>Var</code></td><td>name</td><td><code>n</code></td></tr>
+    <tr><td><code>IntLit</code></td><td>value (integer)</td><td><code>10</code></td></tr>
+  </table>
+
+  <h3 id="parser-rd">Recursive Descent Parsing</h3>
+  <div class="box theory">
+    <div class="box-title">Theory — Recursive Descent</div>
+    <p>Recursive descent is the simplest and most readable parsing technique.
+       <strong>Each grammar rule becomes one method.</strong> The method tries to match
+       that rule's pattern by calling the methods for sub-rules recursively.
+       Because the grammar is naturally recursive (expressions contain sub-expressions),
+       the code structure mirrors the grammar directly.</p>
+  </div>
+
+  <p>Here's how <code>n = n - 1</code> gets parsed. The parser starts at <code>parse_expr()</code>,
+     which calls down through the precedence levels:</p>
+
+<pre><code><span class="fn">parse_expr()</span>
+  <span class="op">→</span> <span class="fn">parse_assign()</span>
+      sees IDENT("n") EQ ...
+      left = <span class="fn">parse_logical_or()</span>
+               ... (descends through levels)
+               <span class="op">→</span> <span class="fn">parse_primary()</span> <span class="op">→</span> <span class="fn">Var</span>(<span class="str">"n"</span>)
+      op = <span class="str">"="</span>
+      right = <span class="fn">parse_assign()</span>
+                <span class="op">→</span> <span class="fn">parse_additive()</span>
+                    left = <span class="fn">Var</span>(<span class="str">"n"</span>)
+                    op   = <span class="str">"-"</span>
+                    right = <span class="fn">IntLit</span>(<span class="num">1</span>)
+                    <span class="op">→</span> <span class="fn">BinOp</span>(<span class="fn">Var</span>(<span class="str">"n"</span>), <span class="str">"-"</span>, <span class="fn">IntLit</span>(<span class="num">1</span>))
+      <span class="op">→</span> <span class="fn">Assign</span>(<span class="fn">Var</span>(<span class="str">"n"</span>), <span class="str">"="</span>, <span class="fn">BinOp</span>(<span class="fn">Var</span>(<span class="str">"n"</span>), <span class="str">"-"</span>, <span class="fn">IntLit</span>(<span class="num">1</span>)))</code><span class="label">Parse trace for n = n - 1</span></pre>
+
+  <p>The resulting AST node for the whole Fibonacci function looks like this conceptually:</p>
+
+<pre><code><span class="fn">FuncDecl</span>(<span class="str">"fib"</span>, params=[<span class="fn">Param</span>(<span class="str">"n"</span>)],
+  body=<span class="fn">Block</span>([
+    <span class="fn">VarDecl</span>(<span class="str">"a"</span>), <span class="fn">VarDecl</span>(<span class="str">"b"</span>), <span class="fn">VarDecl</span>(<span class="str">"tmp"</span>),
+    <span class="fn">Assign</span>(<span class="fn">Var</span>(<span class="str">"a"</span>), <span class="str">"="</span>, <span class="fn">IntLit</span>(<span class="num">0</span>)),
+    <span class="fn">Assign</span>(<span class="fn">Var</span>(<span class="str">"b"</span>), <span class="str">"="</span>, <span class="fn">IntLit</span>(<span class="num">1</span>)),
+    <span class="fn">WhileStmt</span>(cond=<span class="fn">Var</span>(<span class="str">"n"</span>), body=<span class="fn">Block</span>([
+      <span class="fn">Assign</span>(<span class="fn">Var</span>(<span class="str">"tmp"</span>), <span class="str">"="</span>, <span class="fn">Var</span>(<span class="str">"b"</span>)),
+      <span class="fn">Assign</span>(<span class="fn">Var</span>(<span class="str">"b"</span>),   <span class="str">"="</span>, <span class="fn">BinOp</span>(<span class="fn">Var</span>(<span class="str">"a"</span>), <span class="str">"+"</span>, <span class="fn">Var</span>(<span class="str">"b"</span>))),
+      <span class="fn">Assign</span>(<span class="fn">Var</span>(<span class="str">"a"</span>),   <span class="str">"="</span>, <span class="fn">Var</span>(<span class="str">"tmp"</span>)),
+      <span class="fn">Assign</span>(<span class="fn">Var</span>(<span class="str">"n"</span>),   <span class="str">"="</span>, <span class="fn">BinOp</span>(<span class="fn">Var</span>(<span class="str">"n"</span>), <span class="str">"-"</span>, <span class="fn">IntLit</span>(<span class="num">1</span>))),
+    ])),
+    <span class="fn">ReturnStmt</span>(<span class="fn">Var</span>(<span class="str">"a"</span>)),
+  ])
+)</code><span class="label">AST for the fib() function</span></pre>
+
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PHASE 3: SEMANTIC ANALYSIS
+     ══════════════════════════════════════════════════════════════ -->
+<section id="semantic">
+  <span class="section-badge">Phase 3</span>
+  <h2>Semantic Analysis</h2>
+
+  <div class="box theory">
+    <div class="box-title">Theory</div>
+    <p>The parser verified <em>syntax</em> — does the program match the grammar?
+       The semantic analyser verifies <em>meaning</em> — does it make sense?
+       A program can be syntactically valid but semantically wrong.</p>
+  </div>
+
+<pre><code>x = <span class="num">5</span>;              <span class="cmt">← syntax OK, but what is x?</span>
+<span class="fn">foo</span>(<span class="num">1</span>, <span class="num">2</span>);         <span class="cmt">← syntax OK, but foo takes 3 args</span>
+<span class="kw">break</span>;              <span class="cmt">← syntax OK, but we're not in a loop</span>
+<span class="kw">void</span> <span class="fn">f</span>() { <span class="kw">return</span> <span class="num">1</span>; }  <span class="cmt">← syntax OK, but f is void</span></code><span class="label">Syntactically valid but semantically wrong</span></pre>
+
+  <h3 id="semantic-symbols">Symbol Tables</h3>
+  <p>The central data structure is the <strong>symbol table</strong>: a dictionary mapping every
+     declared name to a description of what it is.</p>
+
+<pre><code><span class="cmt">After analysing our fibonacci program, the symbol table contains:</span>
+
+<span class="str">"result"</span>  →  Symbol(kind=<span class="str">'scalar'</span>)
+<span class="str">"fib"</span>     →  Symbol(kind=<span class="str">'func'</span>, return_type=<span class="str">'char'</span>, param_count=<span class="num">1</span>)
+<span class="str">"main"</span>    →  Symbol(kind=<span class="str">'func'</span>, return_type=<span class="str">'void'</span>, param_count=<span class="num">0</span>)
+
+<span class="cmt">Inside fib(), a local scope adds:</span>
+<span class="str">"n"</span>       →  Symbol(kind=<span class="str">'scalar'</span>)  <span class="cmt">← parameter</span>
+<span class="str">"a"</span>       →  Symbol(kind=<span class="str">'scalar'</span>)
+<span class="str">"b"</span>       →  Symbol(kind=<span class="str">'scalar'</span>)
+<span class="str">"tmp"</span>     →  Symbol(kind=<span class="str">'scalar'</span>)</code><span class="label">Symbol table after analysis</span></pre>
+
+  <h3 id="semantic-scopes">Scopes</h3>
+  <p>NoobsC has exactly <strong>two scope levels</strong>:</p>
+
+  <ul>
+    <li><strong>Global scope</strong> — top-level variables and functions</li>
+    <li><strong>Local scope</strong> — parameters + local variables inside a function body</li>
+  </ul>
+
+  <p>When we enter a function we push a fresh local scope. When we leave, we pop it.
+     Lookup always checks local first, then global — so a local variable can <em>shadow</em> a global
+     with the same name.</p>
+
+  <h3 id="semantic-checks">Two-Pass Analysis</h3>
+  <div class="box insight">
+    <div class="box-title">Why Two Passes?</div>
+    <p>Consider two mutually-recursive functions where <code>even()</code> calls <code>odd()</code>
+       and vice versa. In a single pass, when we analyse <code>even()</code> we haven't seen
+       <code>odd()</code> yet, so the call looks like an undeclared function.
+       The solution: <strong>hoist all function and global names first (pass 1)</strong>,
+       then check each function body (pass 2). Now every name is known before any body is analysed.</p>
+  </div>
+
+  <h3>What Gets Checked</h3>
+  <ul>
+    <li>Undeclared variable or function</li>
+    <li>Duplicate declaration in the same scope</li>
+    <li>Array used without index: <code>arr</code> instead of <code>arr[i]</code></li>
+    <li>Scalar used with index: <code>x[i]</code> where <code>x</code> is a plain variable</li>
+    <li>Wrong number of arguments to a function call</li>
+    <li>Void function returning a value; non-void function with no return</li>
+    <li><code>break</code> used outside a loop</li>
+  </ul>
+
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PHASE 4: CODE GENERATION
+     ══════════════════════════════════════════════════════════════ -->
+<section id="codegen">
+  <span class="section-badge">Phase 4</span>
+  <h2>Code Generation</h2>
+
+  <div class="box theory">
+    <div class="box-title">Theory</div>
+    <p>Code generation is the heart of the compiler. It walks the AST node by node and emits
+       assembly instructions. The key design decisions are:
+       <strong>how to map language constructs onto the machine's registers and memory</strong>.</p>
+  </div>
+
+  <h3 id="codegen-regs">Register Roles</h3>
+  <p>With only 4 registers, every register has a fixed role:</p>
+
+  <table>
+    <tr><th>Register</th><th>Role</th><th>When used</th></tr>
+    <tr>
+      <td><span class="register-box">R0</span></td>
+      <td><strong>Accumulator</strong></td>
+      <td>Every expression result lands here. All <code>_gen_expr()</code> calls guarantee R0 = result on exit.</td>
+    </tr>
+    <tr>
+      <td><span class="register-box">R1</span></td>
+      <td><strong>Secondary</strong></td>
+      <td>Right-hand operand for binary instructions (ADD, SUB, AND, …)</td>
+    </tr>
+    <tr>
+      <td><span class="register-box">R2</span></td>
+      <td><strong>Arg/Temp</strong></td>
+      <td>Third function argument; scratch in nested calls</td>
+    </tr>
+    <tr>
+      <td><span class="register-box">R3</span></td>
+      <td><strong>Array Index</strong></td>
+      <td>Used as the offset in <code>SET_ADR_MODE</code> indexed addressing</td>
+    </tr>
+  </table>
+
+  <h3>Variable Storage</h3>
+  <p>There is no stack-allocated local storage. Instead, every variable gets a <strong>static data label</strong>
+     in the <code>.data</code> section:</p>
+
+  <table>
+    <tr><th>Variable kind</th><th>Assembly label</th><th>Example</th></tr>
+    <tr><td>Global variable</td><td><code>varname</code></td><td><code>result:0x00</code></td></tr>
+    <tr><td>Global array</td><td><code>arrname</code> (N bytes)</td><td><code>data:0x00,0x00,…</code></td></tr>
+    <tr><td>Local / parameter</td><td><code>__funcname_varname</code></td><td><code>__fib_n:0x00</code></td></tr>
+    <tr><td>Scratch temp</td><td><code>__tmp0</code> … <code>__tmp3</code></td><td>shared across all functions</td></tr>
+  </table>
+
+  <div class="box warning">
+    <div class="box-title">⚠ No Recursion</div>
+    <p>Because locals are statically allocated (not on a stack), a recursive function
+       would overwrite its own locals on the second call. NoobsC explicitly disallows recursion.</p>
+  </div>
+
+  <h3 id="codegen-expr">Generating Expressions</h3>
+  <p>The golden rule: <strong>after any <code>_gen_expr(node)</code> call, R0 holds the result</strong>.
+     This invariant simplifies the rest of the codegen enormously.</p>
+
+  <h4>Literals</h4>
+<pre><code><span class="cmt">// IntLit(10) → R0 = 10</span>
+    <span class="op">XOR</span>  <span class="reg">R0</span>,<span class="reg">R0</span>         <span class="cmt">; R0 = 0  (clear first)</span>
+    <span class="op">ADDI</span> <span class="reg">R0</span>,<span class="reg">R0</span>,<span class="num">10</span>     <span class="cmt">; R0 = 0 + 10 = 10</span></code><span class="label">Generated code</span></pre>
+
+  <h4>Variables</h4>
+<pre><code><span class="cmt">// Var("a") — a local of fib()</span>
+    <span class="op">LOAD</span> <span class="reg">R0</span>,__fib_a   <span class="cmt">; R0 = memory[__fib_a]</span></code><span class="label">Generated code</span></pre>
+
+  <h4>Binary Operations — The Tricky Part</h4>
+  <p>A binary operation like <code>a + b</code> needs both operands in registers at the same time.
+     But we only have R0 as the result register. The solution: <strong>evaluate left, save to a temp
+     slot in memory, evaluate right into R0, then restore left from the temp</strong>.</p>
+
+<pre><code><span class="cmt">// BinOp(Var("a"), "+", Var("b"))</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__fib_a    <span class="cmt">; R0 = a  (evaluate left)</span>
+    <span class="op">STORE</span> <span class="reg">R0</span>,__tmp0     <span class="cmt">; save left to temp slot</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__fib_b    <span class="cmt">; R0 = b  (evaluate right)</span>
+    <span class="op">ADDI</span>  <span class="reg">R1</span>,<span class="reg">R0</span>,<span class="num">0</span>      <span class="cmt">; R1 = b  (move right to R1)</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__tmp0     <span class="cmt">; R0 = a  (restore left)</span>
+    <span class="op">ADD</span>   <span class="reg">R0</span>,<span class="reg">R1</span>         <span class="cmt">; R0 = a + b ✓</span></code><span class="label">Generated code for a + b</span></pre>
+
+  <h4>Subtraction</h4>
+  <p>Subtraction follows the same left/right pattern as addition. <code>SUB R0,R1</code>
+     computes <code>R0 − R1</code>, so we put left in R0 and right in R1:</p>
+
+<pre><code><span class="cmt">// BinOp(Var("n"), "-", IntLit(1))  →  n - 1</span>
+
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__fib_n    <span class="cmt">; R0 = n  (evaluate left)</span>
+    <span class="op">STORE</span> <span class="reg">R0</span>,__tmp0     <span class="cmt">; save left to temp slot</span>
+    <span class="op">XOR</span>   <span class="reg">R0</span>,<span class="reg">R0</span>
+    <span class="op">ADDI</span>  <span class="reg">R0</span>,<span class="reg">R0</span>,<span class="num">1</span>       <span class="cmt">; R0 = 1  (evaluate right)</span>
+    <span class="op">ADDI</span>  <span class="reg">R1</span>,<span class="reg">R0</span>,<span class="num">0</span>       <span class="cmt">; R1 = 1  (move right to R1)</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__tmp0     <span class="cmt">; R0 = n  (restore left)</span>
+    <span class="op">SUB</span>   <span class="reg">R0</span>,<span class="reg">R1</span>         <span class="cmt">; R0 = R0-R1 = n-1 ✓</span></code><span class="label">Generated code for n - 1</span></pre>
+
+  <h3 id="codegen-control">Control Flow</h3>
+  <h4>The While Loop</h4>
+  <p>A while loop needs two labels: one at the top (to jump back to) and one at the end (to exit to).
+     The condition is evaluated at the top on every iteration.</p>
+
+<pre><code><span class="cmt">// while (n) { body }</span>
+
+<span class="lbl">__while_0:</span> <span class="op">NOP</span>          <span class="cmt">; top label</span>
+
+    <span class="cmt">// evaluate condition: n</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__fib_n    <span class="cmt">; R0 = n</span>
+    <span class="op">ADDI</span>  <span class="reg">R0</span>,<span class="reg">R0</span>,<span class="num">0</span>       <span class="cmt">; dummy add to update Z/NZ flags</span>
+    <span class="op">JMPZ</span>  <span class="lbl">__while_end_1</span> <span class="cmt">; if n==0: exit loop</span>
+
+    <span class="cmt">; ... body ...</span>
+
+    <span class="op">JMPNC</span> <span class="lbl">__while_0</span>     <span class="cmt">; unconditional: back to top</span>
+<span class="lbl">__while_end_1:</span> <span class="op">NOP</span>      <span class="cmt">; end label</span></code><span class="label">Generated code for while (n) {…}</span></pre>
+
+  <h4>Comparison Conditions</h4>
+  <p>For comparisons like <code>j &lt; 7</code>, we use the <strong>SUB instruction and the OVF flag</strong>
+     to determine the result. The key insight: <code>SUB R0,R1</code> with R0=left, R1=right sets
+     OVF=1 when <code>left &lt; right</code> (because left−right underflows).</p>
+
+<pre><code><span class="cmt">// while (j < 7)</span>
+
+<span class="lbl">__while_3:</span> <span class="op">NOP</span>
+
+    <span class="cmt">; Load j (left) and 7 (right) for comparison</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__sort_j      <span class="cmt">; R0 = j  (left)</span>
+    <span class="op">STORE</span> <span class="reg">R0</span>,__tmp0
+    <span class="op">XOR</span>   <span class="reg">R0</span>,<span class="reg">R0</span>
+    <span class="op">ADDI</span>  <span class="reg">R0</span>,<span class="reg">R0</span>,<span class="num">7</span>         <span class="cmt">; R0 = 7  (right)</span>
+    <span class="op">ADDI</span>  <span class="reg">R1</span>,<span class="reg">R0</span>,<span class="num">0</span>         <span class="cmt">; R1 = 7</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__tmp0        <span class="cmt">; R0 = j</span>
+
+    <span class="op">SUB</span>   <span class="reg">R0</span>,<span class="reg">R1</span>            <span class="cmt">; R0 = R0-R1 = j-7. OVF=1 if j&lt;7.</span>
+
+    <span class="op">JMPOVF</span> <span class="lbl">__cmp_skip_5</span>   <span class="cmt">; OVF=1 → j&lt;7 is TRUE → skip exit</span>
+    <span class="op">JMPNC</span>  <span class="lbl">__while_end_4</span>  <span class="cmt">; OVF=0 → j≥7 is FALSE → exit loop</span>
+<span class="lbl">__cmp_skip_5:</span> <span class="op">NOP</span>
+
+    <span class="cmt">; ... body ...</span>
+
+    <span class="op">JMPNC</span> <span class="lbl">__while_3</span>
+<span class="lbl">__while_end_4:</span> <span class="op">NOP</span></code><span class="label">Generated code for while (j &lt; 7)</span></pre>
+
+  <p>The comparison table for all operators — all use <code>SUB R0,R1</code> (writes to R0,
+     giving R0 = left − right, OVF = 1 when left &lt; right):</p>
+
+  <table>
+    <tr><th>Operator</th><th>Operand setup</th><th>Branch logic</th></tr>
+    <tr><td><code>==</code></td><td>R0=left, R1=right</td><td><code>JMPNZ false_lbl</code> (Z=1 when equal → don't exit)</td></tr>
+    <tr><td><code>!=</code></td><td>R0=left, R1=right</td><td><code>JMPZ false_lbl</code></td></tr>
+    <tr><td><code>&lt;</code></td><td>R0=left, R1=right</td><td>OVF=1 when left&lt;right (TRUE) → JMPOVF skip; JMPNC end; skip: NOP</td></tr>
+    <tr><td><code>&gt;=</code></td><td>R0=left, R1=right</td><td>OVF=1 when left&lt;right (FALSE) → JMPOVF end</td></tr>
+    <tr><td><code>&gt;</code></td><td>swap: R0=right, R1=left</td><td>OVF=1 when right&lt;left (TRUE) → JMPOVF skip; JMPNC end; skip: NOP</td></tr>
+    <tr><td><code>&lt;=</code></td><td>swap: R0=right, R1=left</td><td>OVF=1 when right&lt;left (FALSE) → JMPOVF end</td></tr>
+  </table>
+
+  <h4>If / Else</h4>
+<pre><code><span class="cmt">// if (data[j] > data[j+1]) { swap; }</span>
+
+    <span class="cmt">; evaluate condition, jump to else_lbl if FALSE</span>
+    <span class="cmt">; ... comparison code (as above) ...</span>
+    <span class="op">JMPNC</span> <span class="lbl">__if_end_6</span>     <span class="cmt">; condition was false → skip body</span>
+<span class="lbl">__cmp_skip_7:</span> <span class="op">NOP</span>
+
+    <span class="cmt">; ... then-body (swap) ...</span>
+
+<span class="lbl">__if_end_6:</span> <span class="op">NOP</span></code><span class="label">Generated code for if/else</span></pre>
+
+  <h3 id="codegen-calls">Function Calls and the Calling Convention</h3>
+  <p>With only 4 registers and static allocation, the calling convention is simple:</p>
+
+  <ol class="steps">
+    <li><span class="num">1</span><div>Evaluate arguments and place them in R0, R1, R2 (up to 3 args)</div></li>
+    <li><span class="num">2</span><div>Emit <code>CALLNC __funcname</code> — this pushes the return address and jumps</div></li>
+    <li><span class="num">3</span><div>Callee immediately saves its args from R0/R1/R2 to its static data labels</div></li>
+    <li><span class="num">4</span><div>Callee does its work, leaving the return value in R0</div></li>
+    <li><span class="num">5</span><div>Callee emits <code>RET</code> — pops return address and jumps back</div></li>
+    <li><span class="num">6</span><div>Caller reads the return value from R0</div></li>
+  </ol>
+
+<pre><code><span class="cmt">// result = fib(10);   ← the call site in main()</span>
+    <span class="op">XOR</span>  <span class="reg">R0</span>,<span class="reg">R0</span>
+    <span class="op">ADDI</span> <span class="reg">R0</span>,<span class="reg">R0</span>,<span class="num">10</span>       <span class="cmt">; R0 = 10  (arg 0)</span>
+    <span class="op">CALLNC</span> <span class="lbl">__fib</span>         <span class="cmt">; call fib</span>
+    <span class="op">STORE</span> <span class="reg">R0</span>,result      <span class="cmt">; result = R0  (return value)</span>
+
+<span class="cmt">// fib() entry — saves its parameter immediately</span>
+<span class="lbl">__fib:</span> <span class="op">STORE</span> <span class="reg">R0</span>,__fib_n  <span class="cmt">; save arg0 (n) to static slot</span>
+    <span class="cmt">; ... body ...</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__fib_a     <span class="cmt">; return value = a</span>
+    <span class="op">RET</span></code><span class="label">Generated call + callee entry</span></pre>
+
+  <h3 id="codegen-arrays">Array Access</h3>
+  <p>The CPU supports <strong>indexed addressing</strong> via <code>SET_ADR_MODE</code>.
+     When this mode is active, every <code>LOAD</code>/<code>STORE</code> accesses
+     <code>Memory[label + R3]</code> instead of <code>Memory[label]</code>.</p>
+
+  <p>So <code>data[j]</code> generates:</p>
+
+<pre><code><span class="cmt">// Reading data[j]</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__sort_j    <span class="cmt">; R0 = j  (the index)</span>
+    <span class="op">ADDI</span>  <span class="reg">R3</span>,<span class="reg">R0</span>,<span class="num">0</span>       <span class="cmt">; R3 = j  (move index to R3)</span>
+    <span class="op">SET_ADR_MODE</span>          <span class="cmt">; enable indexed addressing</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,data        <span class="cmt">; R0 = Memory[data + R3] = data[j]</span>
+    <span class="op">RST_ADR_MODE</span>          <span class="cmt">; disable indexed addressing</span>
+
+<span class="cmt">// Writing data[j] = tmp</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__sort_tmp  <span class="cmt">; R0 = tmp (value to write)</span>
+    <span class="op">STORE</span> <span class="reg">R0</span>,__tmp0      <span class="cmt">; save value</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__sort_j    <span class="cmt">; R0 = j  (index)</span>
+    <span class="op">ADDI</span>  <span class="reg">R3</span>,<span class="reg">R0</span>,<span class="num">0</span>       <span class="cmt">; R3 = j</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__tmp0      <span class="cmt">; R0 = tmp (restore value)</span>
+    <span class="op">SET_ADR_MODE</span>
+    <span class="op">STORE</span> <span class="reg">R0</span>,data        <span class="cmt">; Memory[data + j] = tmp</span>
+    <span class="op">RST_ADR_MODE</span></code><span class="label">Generated code for array read/write</span></pre>
+
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PHASE 5: ASSEMBLER
+     ══════════════════════════════════════════════════════════════ -->
+<section id="assembler">
+  <span class="section-badge">Phase 5</span>
+  <h2>Assembly — From Mnemonics to Bytes</h2>
+
+  <div class="box theory">
+    <div class="box-title">Theory</div>
+    <p>The assembler converts human-readable instruction mnemonics into binary machine code.
+       Unlike the compiler (which involves significant transformation), the assembler is
+       mostly a <strong>mechanical encoding</strong>: look up each opcode in a table, encode
+       the register arguments into a byte, handle labels.</p>
+  </div>
+
+  <h3 id="assembler-twopass">Two-Pass Design</h3>
+  <p>The assembler makes <strong>two complete passes</strong> through the source file:</p>
+
+  <ul class="steps">
+    <li>
+      <span class="num">1</span>
+      <div>
+        <strong>Pass 1 — Build the symbol table.</strong> Scan every label (lines with <code>:</code>)
+        and record what address they correspond to. Count instruction bytes without emitting them.
+        This resolves all forward references — a label used before it's defined.
+      </div>
+    </li>
+    <li>
+      <span class="num">2</span>
+      <div>
+        <strong>Pass 2 — Emit machine code.</strong> Re-scan from the beginning. Now every label
+        address is known, so jump targets can be encoded as real addresses.
+      </div>
+    </li>
+  </ul>
+
+<pre><code><span class="cmt">Example: JMPZ __while_end_1</span>
+
+<span class="cmt">Pass 1:</span>
+  See "__while_end_1: NOP" at code address 0x0042
+  → SYMBOL_TABLE["__while_end_1"] = 0x0042
+
+<span class="cmt">Pass 2:</span>
+  See "JMPZ __while_end_1"
+  → look up: 0x0042
+  → emit: SET_BCZ (1 byte), JMP (1 byte), 0x00 (addr MSB), 0x42 (addr LSB)</code><span class="label">Two-pass label resolution</span></pre>
+
+  <h3 id="assembler-encode">Instruction Encoding</h3>
+  <p>Each instruction is encoded as one or two bytes. The byte layout for ALU operations:</p>
+
+<pre><code>Byte layout:  [7:5] opcode  [4] immediate?  [3:2] PTR1 (1st arg reg)  [1:0] PTR0 (2nd arg reg)
+
+Example: ADD R0,R1
+  opcode  = ADD  = 0b001 → bits[7:5] = 001
+  imm     = 0    (register mode)
+  PTR1    = R0   = 0     → bits[3:2] = 00
+  PTR0    = R1   = 1     → bits[1:0] = 01
+
+  → 0b001_0_00_01 = 0x21
+
+Example: ADDI R0,R0,10
+  opcode  = ADDI = 0b001 → bits[7:5] = 001
+  imm     = 1    (immediate mode) → bit[4] = 1
+  PTR1    = R0   = 0     → bits[3:2] = 00
+  PTR0    = R0   = 0     → bits[1:0] = 00
+
+  → 0b001_1_00_00 = 0x30
+  second byte: 0x0A (the immediate value 10)</code><span class="label">Instruction encoding</span></pre>
+
+  <div class="box insight">
+    <div class="box-title">Why PTR1 is the "first" text argument</div>
+    <p>In the assembler source (noobsASM.pl), the first text argument becomes <strong>PTR1 (bits[3:2])</strong>
+       and the second text argument becomes <strong>PTR0 (bits[1:0])</strong>.
+       The execute stage computes <code>src0 − src1</code>. Originally the decode stage assigned
+       <code>src0 = reg[PTR0] = 2nd_arg</code> and <code>src1 = reg[PTR1] = 1st_arg</code>,
+       making <code>SUB R0,R1</code> = R1−R0 — the reverse of every other ISA.
+       This was corrected by swapping the register assignments in the <strong>decode</strong> stage
+       for non-immediate SUB only (<code>src0 ← PTR1 = Rd</code>, <code>src1 ← PTR0 = Rs</code>),
+       so that <code>SUB Rd,Rs = Rd − Rs</code> as expected without affecting <code>SUBI</code>.
+       The original bug and both fixes are described in the Debugging section below.</p>
+  </div>
+
+  <h3>Section Detection — A Fragility</h3>
+  <p>The assembler identifies the <code>.data</code> and <code>.code</code> sections by
+     matching these exact strings against each line. This means any variable or label
+     whose name contains "data" or "code" as a substring would trick the assembler into
+     switching sections mid-program — a subtle but catastrophic bug.
+     The fix: match the <em>exact</em> section markers using anchored regular expressions:</p>
+
+<pre><code><span class="cmt"># Fragile (old) — matches any line containing "data"</span>
+<span class="kw">if</span>($line =~ <span class="str">/data/</span>) { ... }
+
+<span class="cmt"># Fixed — only matches the exact section header ".data"</span>
+<span class="kw">if</span>($line =~ <span class="str">/^\.data$/</span>) { ... }</code><span class="label">noobsASM.pl — section detection fix</span></pre>
+
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     REAL COMPILER BUGS
+     ══════════════════════════════════════════════════════════════ -->
+<section id="bugs">
+  <span class="section-badge">Debugging</span>
+  <h2>Real Compiler Bugs — Case Studies</h2>
+
+  <p>The best way to understand a compiler deeply is to debug a real bug in it.
+     Here are two bugs found and fixed in NoobsC, with a complete analysis of
+     how each was discovered and why it was hard to spot.</p>
+
+  <h3 id="bugs-sub">Bug 1: The SUB Instruction Bug (Infinite Loop)</h3>
+
+  <div class="box bug">
+    <div class="box-title">Symptom</div>
+    <p>The compiler-generated Fibonacci program hangs forever instead of computing fib(10)=55.</p>
+  </div>
+
+  <h4>Step 1 — Isolate the loop</h4>
+  <p>The while loop condition is <code>while (n)</code> — a simple truthiness check.
+     If it ran forever, either <strong>n never reaches zero</strong>, or the loop condition is broken.
+     The loop condition code uses <code>JMPZ</code> (jump when n==0), which is straightforward.
+     So focus on the decrement: <code>n = n - 1</code>.</p>
+
+  <h4>Step 2 — Read the generated assembly</h4>
+<pre><code><span class="cmt">; n = n - 1  (ORIGINAL, BUGGY codegen)</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__fib_n    <span class="cmt">; R0 = n  (left = n)</span>
+    <span class="op">STORE</span> <span class="reg">R0</span>,__tmp0     <span class="cmt">; save left</span>
+    <span class="op">XOR</span>   <span class="reg">R0</span>,<span class="reg">R0</span>
+    <span class="op">ADDI</span>  <span class="reg">R0</span>,<span class="reg">R0</span>,<span class="num">1</span>       <span class="cmt">; R0 = 1  (right = 1)</span>
+    <span class="op">ADDI</span>  <span class="reg">R1</span>,<span class="reg">R0</span>,<span class="num">0</span>       <span class="cmt">; R1 = 1  (right → R1)</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__tmp0      <span class="cmt">; R0 = n  (left → R0)</span>
+    <span class="err">SUB   R0,R1</span>          <span class="cmt">; BUG: ISA was Rs−Rd, so R0 = R1-R0 = 1-n ← WRONG!</span>
+    <span class="op">STORE</span> <span class="reg">R0</span>,__fib_n    <span class="cmt">; stores 1-n instead of n-1</span></code><span class="label">Buggy generated assembly</span></pre>
+
+  <h4>Step 3 — Trace the ISA semantics</h4>
+  <p>Reading the assembler source (noobsASM.pl) reveals how the instruction is encoded:</p>
+<pre><code><span class="cmt"># For any 2-arg ALU instruction:</span>
+<span class="kw">my</span> $src_reg1 = <span class="fn">to_int</span>($REGISTER_HASH{$ARGLIST[<span class="num">0</span>]}) << <span class="num">2</span>; <span class="cmt"># 1st text arg → PTR1 (bits[3:2])</span>
+<span class="kw">my</span> $src_reg0 = <span class="fn">to_int</span>($REGISTER_HASH{$ARGLIST[<span class="num">1</span>]});        <span class="cmt"># 2nd text arg → PTR0 (bits[1:0])</span>
+
+<span class="cmt"># Execute: result = src0 - src1  (unchanged)</span>
+<span class="cmt"># Original decode: src0 = reg[PTR0] = reg[2nd_arg] = Rs</span>
+<span class="cmt">#                  src1 = reg[PTR1] = reg[1st_arg] = Rd</span>
+<span class="cmt"># So result = Rs - Rd → SUB R0,R1 → R0 = R1 - R0  ← reversed!</span></code><span class="label">noobsASM.pl — encoding reveals reversed semantics</span></pre>
+
+  <h4>Step 4 — Understand the failure mode</h4>
+<pre><code><span class="cmt">n = 10 on entry to fib(10)</span>
+
+Iteration 1:  SUB R0,R1 with R0=n=10, R1=1 → R0 = R1-R0 = 1-10 = 247  (stored as n)
+Iteration 2:  SUB R0,R1 with R0=n=247, R1=1 → R0 = R1-R0 = 1-247 = 10 (stored as n)
+Iteration 3:  back to 247 ...
+
+n oscillates between 10 and 247 — never reaches 0 — infinite loop.</span></code><span class="label">Root cause trace</span></pre>
+
+  <h4>Step 5 — Two-step fix</h4>
+  <p>This bug was fixed in two stages, illustrating an important point about layered systems:</p>
+
+  <p><strong>Fix A (codegen workaround):</strong> With the reversed ISA, evaluate <em>right</em> first,
+     save it, evaluate <em>left</em> into R0, move left→R1, restore right→R0. Then
+     <code>SUB R0,R1</code> gives R1−R0 = left−right = n−1. This is a workaround: correct result,
+     but unintuitive evaluation order.</p>
+
+  <p><strong>Fix B (ISA correction):</strong> The root cause was in the <strong>decode</strong> stage:
+     it fed <code>src0 = reg[PTR0] = Rs</code> and <code>src1 = reg[PTR1] = Rd</code>, so
+     <code>src0 − src1 = Rs − Rd</code>. The fix swaps the register assignments for non-immediate
+     SUB only — <code>src0 ← reg[PTR1] = Rd</code>, <code>src1 ← reg[PTR0] = Rs</code> — in both
+     <code>idecode.v</code> (RTL) and <code>NoobsCpu.c</code> (cmodel). The execute stage
+     (<code>src0 − src1</code>) and the <code>SUBI</code> immediate path are untouched, so SUBI
+     continues to compute <code>Rs − imm</code> correctly.
+     Now <code>SUB Rd,Rs = Rd − Rs</code>, matching every other ISA. The codegen was also simplified
+     back to the natural left-first evaluation order:</p>
+
+<pre><code><span class="cmt">; n = n - 1  (FULLY FIXED — natural evaluation order)</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__fib_n    <span class="cmt">; R0 = n  (evaluate LEFT)</span>
+    <span class="op">STORE</span> <span class="reg">R0</span>,__tmp0     <span class="cmt">; save left</span>
+    <span class="op">XOR</span>   <span class="reg">R0</span>,<span class="reg">R0</span>
+    <span class="op">ADDI</span>  <span class="reg">R0</span>,<span class="reg">R0</span>,<span class="num">1</span>       <span class="cmt">; R0 = 1  (evaluate RIGHT)</span>
+    <span class="op">ADDI</span>  <span class="reg">R1</span>,<span class="reg">R0</span>,<span class="num">0</span>       <span class="cmt">; R1 = 1  (right → R1)</span>
+    <span class="op">LOAD</span>  <span class="reg">R0</span>,__tmp0     <span class="cmt">; R0 = n  (restore left)</span>
+    <span class="fix">SUB   R0,R1</span>          <span class="cmt">; R0 = R0-R1 = n-1 ✓ (Rd = Rd-Rs, conventional)</span>
+    <span class="op">STORE</span> <span class="reg">R0</span>,__fib_n    <span class="cmt">; stores n-1 ✓</span></code><span class="label">Final fixed assembly</span></pre>
+
+  <div class="box insight">
+    <div class="box-title">Lesson: Fix at the Right Layer</div>
+    <p>A workaround in a higher layer (codegen) can paper over a bug in a lower layer (ISA/RTL),
+       but it adds hidden complexity and surprises anyone writing assembly by hand.
+       The correct approach — once the root cause is understood — is to fix the lowest layer
+       so all higher layers can use the natural, expected interface.
+       Always run test programs through the cmodel (simulator) to catch semantic errors,
+       not just the assembler.</p>
+  </div>
+
+  <h3 id="bugs-asm">Bug 2: The Assembler Section Detection Bug</h3>
+
+  <div class="box bug">
+    <div class="box-title">Symptom</div>
+    <p>Assembling <code>bubble_sort_compiler_gen.asm</code> produces hundreds of
+       "Argument X isn't numeric" errors. Tokens appear as
+       <code>XORR0</code>, <code>LOADR0</code>, <code>JMPNC__label</code> — concatenated strings.</p>
+  </div>
+
+  <h4>Diagnosis</h4>
+  <p>The concatenated tokens <code>XORR0</code> (opcode + register with no space) indicate
+     the assembler is not seeing line separators properly. But the file looks fine.
+     The real clue is which instruction the errors start after: they start right after
+     a <code>STORE R0,data</code> instruction.</p>
+
+  <p>The assembler uses this to detect sections:</p>
+<pre><code><span class="err">if($line =~ /data/) {   # matches ANY line containing "data"</span>
+    $data_section = 1;
+    $code_section = 0;
+}</code><span class="label">noobsASM.pl (buggy)</span></pre>
+
+  <p>The bubble sort example has a global array called <code>data</code>.
+     The generated instruction <code>STORE R0,data</code> contains the substring "data" —
+     so the assembler silently re-enters data-section mode mid-program!
+     All subsequent code instructions are then parsed as raw data bytes, explaining
+     the mangled tokens.</p>
+
+  <h4>Fix</h4>
+<pre><code><span class="fix">if($line =~ /^\.data$/) {   # matches ONLY the exact section header ".data"</span>
+    $data_section = 1;
+    $code_section = 0;
+}</code><span class="label">noobsASM.pl (fixed)</span></pre>
+
+  <p>Anchoring with <code>^</code> (start of line) and <code>$</code> (end of line) and requiring
+     the leading dot means only the literal string <code>.data</code> on its own line triggers a
+     section switch.</p>
+
+  <div class="box insight">
+    <div class="box-title">Lesson: Avoid Substring Matching for Structured Data</div>
+    <p>Matching <code>/data/</code> when you mean "the section header <code>.data</code>" is a
+       classic case of over-broad pattern matching. Any time you're looking for a specific
+       structural marker, use the most precise match possible. A variable named <code>database</code>,
+       <code>mydata</code>, or simply <code>data</code> would all trigger the same silent failure.</p>
+  </div>
+
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     SUMMARY
+     ══════════════════════════════════════════════════════════════ -->
+<section id="summary">
+  <h2>Summary — The Full Journey</h2>
+  <p>Let's trace <code>n = n - 1</code> from source all the way to machine bytes:</p>
+
+<pre><code><span class="cmt">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1 — LEXER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+<span class="str">"n = n - 1;"</span>
+  → IDENT(<span class="str">"n"</span>) EQ IDENT(<span class="str">"n"</span>) MINUS INT_LIT(<span class="num">1</span>) SEMI
+
+<span class="cmt">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2 — PARSER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+Token stream
+  → <span class="fn">Assign</span>(<span class="fn">Var</span>(<span class="str">"n"</span>), <span class="str">"="</span>, <span class="fn">BinOp</span>(<span class="fn">Var</span>(<span class="str">"n"</span>), <span class="str">"-"</span>, <span class="fn">IntLit</span>(<span class="num">1</span>)))
+
+<span class="cmt">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3 — SEMANTIC
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+Verify: "n" exists in local scope of fib() ✓
+Verify: 1 is a literal (always valid) ✓
+
+<span class="cmt">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 4 — CODEGEN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+AST node → assembly text:
+
+    XOR   R0,R0         ← evaluate right (1) first
+    ADDI  R0,R0,1
+    STORE R0,__tmp0
+    LOAD  R0,__fib_n    ← evaluate left (n)
+    ADDI  R1,R0,0       ← left → R1
+    LOAD  R0,__tmp0     ← right → R0
+    SUB   R0,R1         ← R0 = R1-R0 = n-1
+    STORE R0,__fib_n    ← write back to n
+
+<span class="cmt">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 5 — ASSEMBLER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+"XOR R0,R0"   → opcode=101, imm=0, PTR1=00, PTR0=00 → 0xA0
+"ADDI R0,R0,1"→ opcode=001, imm=1, PTR1=00, PTR0=00 → 0x30, 0x01
+"STORE R0,…"  → opcode=111, dst=00, addr → 0xE0, addr_hi, addr_lo
+...</code><span class="label">End-to-end trace of n = n - 1</span></pre>
+
+  <h3>Key Takeaways</h3>
+  <ul>
+    <li><strong>Each phase has a clear contract.</strong> The lexer produces tokens; the parser
+        consumes tokens and produces an AST; semantic analysis enriches it; codegen emits text;
+        the assembler emits bytes. Clear interfaces make each stage independently testable.</li>
+    <li><strong>The ISA drives all codegen decisions.</strong> Before writing a single line of
+        codegen, read the instruction set exhaustively. Subtle ISA quirks (like reversed SUB
+        operands) become catastrophic bugs if discovered late.</li>
+    <li><strong>Invariants simplify everything.</strong> The invariant "R0 always holds the
+        expression result" means every codegen helper can be written in isolation without
+        worrying about what registers are live.</li>
+    <li><strong>Static analysis (parsing + semantic) is cheap; runtime bugs are expensive.</strong>
+        The more you catch at compile time, the fewer surprises at runtime.</li>
+    <li><strong>Test with a simulator.</strong> A syntactically correct assembly file tells you
+        nothing about correctness. Run every generated program through the cmodel (CPU simulator)
+        and check the output memory to verify behaviour.</li>
+    <li><strong>Be precise with pattern matching.</strong> <code>/data/</code> and <code>/^\.data$/</code>
+        look similar but behave very differently. Always use the most specific match.</li>
+  </ul>
+
+  <hr>
+  <p style="color:var(--muted); font-size:13px; text-align:center; margin-top:32px">
+    Built by exploring the
+    <a href="https://github.com/supratimd/NoobsCpu-8bit">NoobsCpu-8bit</a>
+    project — a fully open-source 8-bit CPU with Verilog RTL, cmodel, assembler, and compiler.
+    All bugs shown here were real bugs found and fixed during development.
+  </p>
+</section>
+
+</main>
+</div>
+</body>
+</html>

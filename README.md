@@ -835,7 +835,6 @@ INNER_LOOP: LOAD   R3, TMP_REG3
 
 ## ERRATA
 - Real working example only tested in iCEStick FPGA. Xilinx FPGA still not supported.
-- `SUB Rd, Rs` computes `Rd = Rs − Rd` (second operand minus first), not `Rd − Rs` as listed in the ISA table above. This is a known quirk of the execute-stage wiring (PTR0/PTR1 layout). The NoobsC compiler accounts for this internally by swapping operand evaluation order before emitting `SUB`. Hand-written assembly must do the same.
 - Assembly files (`.asm`) use `#` for line comments. NoobsC source files (`.nc`) use `//` and `/* */` — `#` is not valid in NoobsC source.
 
 ---

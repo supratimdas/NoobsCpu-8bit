@@ -307,12 +307,12 @@ class TestIfStmt(unittest.TestCase):
 
     def test_equality_check(self):
         asm = compile_src('void f() { char x; if (x == 0) {} }')
-        self.assertIn('SUB R1,R0', asm)
+        self.assertIn('SUB R0,R1', asm)
         self.assertIn('JMPNZ', asm)
 
     def test_less_than_check(self):
         asm = compile_src('void f() { char x; if (x < 8) {} }')
-        self.assertIn('SUB R1,R0', asm)
+        self.assertIn('SUB R0,R1', asm)
         self.assertIn('JMPOVF', asm)
 
 
