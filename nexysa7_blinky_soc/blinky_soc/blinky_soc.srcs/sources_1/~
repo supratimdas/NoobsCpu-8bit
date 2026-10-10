@@ -1,0 +1,236 @@
+/*
+* A simple SoC implementation
+* using NoobsCPU core. it has
+* a single led as IO (ADDRESS:0x100)
+*, and we use a program to constantly
+* blink the led, and an UART TX module
+* (ADDRESS:0x101) for text output
+*/
+
+`define LED_M_ADDR 11'd100
+`define UART_TX_M_ADDR 11'd101
+
+module blinky_soc (
+    reset_,
+    clk,
+    LED,
+    uart_tx
+);
+    //IOs
+    input reset_;
+    input   clk;
+    output  LED;
+    output  uart_tx;
+
+    reg [31:0] counter;
+ 
+    `ifdef xilinx
+    always @(posedge clk) begin
+        if(!reset_) begin
+            counter[31:0] <= 0;
+        end
+        else begin
+            counter[31:0] <= counter[31:0] + 1'b1;
+        end
+    end
+    wire system_reset_;
+    assign system_reset_ = reset_;
+    `endif
+
+    `ifdef lattice
+     reg cpu_rst;
+     initial begin
+        cpu_rst = 0;
+        counter[31:0] = 0;
+     end
+
+     always @(posedge clk) begin
+         counter[31:0] <= counter[31:0] + 1'b1;
+         if(!cpu_rst) begin
+             cpu_rst <= (counter[31:0] > 4096) ? 1 : 0;
+         end
+     end
+     wire system_reset_;
+     assign system_reset_ = cpu_rst;
+    `endif
+
+
+    ///////////////////////////////////////////////////////////////////
+
+
+    `ifdef lattice
+    wire cpu_clk =  counter[5]; 
+    `endif
+    `ifdef xilinx
+    wire cpu_clk = counter[8];
+    `endif
+
+    wire [7:0] i_data;
+    wire [7:0] m_rd_data;
+    wire [7:0] m_wr_data;
+
+    wire [10:0] m_addr;
+    wire [10:0] i_addr;
+
+    wire m_rd;
+    wire m_wr;
+    wire m_en;
+
+    //inst_mem instance
+    wire [11:0] data_mem_addr;
+    assign data_mem_addr = (m_addr - 8);
+
+
+    ////////////////////////GPIO//////////////////////
+    reg led_out;
+    reg led_out_next;
+
+    always @(posedge cpu_clk) begin
+        if(!system_reset_) begin
+            led_out <= 1'b1;
+        end
+        else begin
+            led_out <= led_out_next;
+        end
+    end
+
+    always @(*) begin
+        if((m_addr == `LED_M_ADDR) && m_wr & m_en) begin
+            led_out_next = |m_wr_data;
+        end
+        else begin
+            led_out_next = led_out;
+        end
+    end
+
+    assign LED = led_out;
+    ///////////////////////////////////////////////////
+
+    ///////////////////////UART////////////////////////
+    wire txclk_en;
+    wire tx;
+    assign uart_tx = tx;
+    `ifdef lattice
+    pll u_pll(
+	    .clock_in(clk),
+	    .clock_out(clk50m),
+	    .locked()
+	);
+    `endif
+    `ifdef xilinx
+    assign clk50m = counter[0];
+    `endif
+
+    baud_rate_gen u_br_gen(
+        .clk_50m(clk50m),
+		.rxclk_en(),
+		.txclk_en(txclk_en)
+    );
+
+    reg [7:0] tx_data_out;
+    reg [7:0] tx_data_out_next;
+
+    reg tx_data_wr;
+    reg tx_data_wr_next;
+    always @(posedge cpu_clk) begin
+        if(!system_reset_) begin
+            tx_data_out <= 8'd0;
+            tx_data_wr  <= 1'b0;
+        end
+        else begin
+            tx_data_out <= tx_data_out_next;
+            tx_data_wr  <= tx_data_wr_next;
+        end
+    end
+
+    always @(*) begin
+        if((m_addr == `UART_TX_M_ADDR) && m_wr & m_en) begin
+            tx_data_out_next = m_wr_data;
+            tx_data_wr_next = 1'b1;
+        end
+        else begin
+            tx_data_out_next = tx_data_out;
+            tx_data_wr_next = 1'b0;
+        end
+    end
+
+    reg tx_wr;
+    reg tx_wr_q;
+    always @(posedge clk50m) begin
+        if(!system_reset_) begin
+            tx_wr   <= 1'b0;
+            tx_wr_q <= 1'b0;
+        end
+        else begin
+            tx_wr     <= tx_data_wr;
+            tx_wr_q   <= tx_wr;
+        end
+    end
+
+    wire wr_en;
+    assign wr_en = tx_wr & (tx_wr ^ tx_wr_q);
+
+    wire tx_busy;
+
+    reg [7:0] cpu_rd_data;
+    always @(*) begin
+        if((m_addr == `UART_TX_M_ADDR) & m_rd & m_en) begin
+            cpu_rd_data = {7'd0,tx_busy};
+        end
+        else begin
+            cpu_rd_data = m_rd_data;
+        end
+    end
+
+    transmitter u_tx(
+           .din(tx_data_out),
+		   .wr_en(wr_en),
+		   .clk_50m(clk50m),
+		   .clken(txclk_en),
+		   .tx(tx),
+		   .tx_busy(tx_busy)
+     );
+     ////////////////////////////////////////////////////
+
+
+    data_mem u_data_mem (
+        .clk(cpu_clk),      //< i
+        .addr(data_mem_addr),  //< i
+        .rd_data(m_rd_data),  //> o
+        .wr_data(m_wr_data),  //< i
+        .wr(m_wr),      //< i
+        .rd(m_rd)      //< i
+    );
+
+    //memory/io subsystem
+    //`define _BLINKY_ROM_
+    `ifdef _BLINKY_ROM_
+    rom_blinky_hello_world u_inst_mem (
+        .addr(i_addr), //< i
+        .data(i_data), //< io >
+    );
+    `else
+    inst_mem u_inst_mem (
+        .clk(cpu_clk),     //< i
+        .addr(i_addr), //< i
+        .rd_data(i_data), //< io >
+        .rd(1'b1)     //< i
+    );
+    `endif
+
+
+    //cpu instance
+    noobs_cpu u_noobs_cpu(
+        .clk(cpu_clk),                      //<i
+        .reset_(system_reset_),         //<i
+        .i_data(i_data),                //<i inst_mem_data
+        .i_addr(i_addr),                //>o inst_mem_address
+        .m_wr_data(m_wr_data),             //>o  data_mem_data wr_data
+        .m_rd_data(cpu_rd_data),             //<i  data_mem_data rd_data
+        .m_addr(m_addr),                //>o  data_mem_addr
+        .m_rd(m_rd),                    //>o  data_mem_rd enable
+        .m_wr(m_wr),                    //>o  data_mem_wr enable
+        .m_en(m_en)                     //>   data_mem en
+    );
+
+endmodule

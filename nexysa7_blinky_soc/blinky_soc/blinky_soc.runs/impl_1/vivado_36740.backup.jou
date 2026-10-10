@@ -1,0 +1,14 @@
+#-----------------------------------------------------------
+# Vivado v2023.1 (64-bit)
+# SW Build 3865809 on Sun May  7 15:05:29 MDT 2023
+# IP Build 3864474 on Sun May  7 20:36:21 MDT 2023
+# SharedData Build 3865790 on Sun May 07 13:33:03 MDT 2023
+# Start of session at: Fri Oct  9 15:11:28 2026
+# Process ID: 36740
+# Current directory: C:/Users/supratimd/blinky_soc/blinky_soc.runs/impl_1
+# Command line: vivado.exe -log blinky_soc.vdi -applog -product Vivado -messageDb vivado.pb -mode batch -source blinky_soc.tcl -notrace
+# Log file: C:/Users/supratimd/blinky_soc/blinky_soc.runs/impl_1/blinky_soc.vdi
+# Journal file: C:/Users/supratimd/blinky_soc/blinky_soc.runs/impl_1\vivado.jou
+# Running On: NV-PF519JKS, OS: Windows, CPU Frequency: 2688 MHz, CPU Physical cores: 12, Host memory: 33782 MB
+#-----------------------------------------------------------
+source blinky_soc.tcl -notrace

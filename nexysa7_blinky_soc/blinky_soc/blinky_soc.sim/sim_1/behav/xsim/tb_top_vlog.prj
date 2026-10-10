@@ -1,0 +1,24 @@
+# compile verilog/system verilog design source files
+verilog xil_defaultlib  --include "../../../../blinky_soc.srcs/sources_1" \
+"../../../../blinky_soc.srcs/sources_1/asserts.v" \
+"../../../../blinky_soc.srcs/sources_1/baud_rate_gen.v" \
+"../../../../blinky_soc.srcs/sources_1/blinky_soc.v" \
+"../../../../blinky_soc.srcs/sources_1/vga/chardata.v" \
+"../../../../blinky_soc.srcs/sources_1/data_mem.v" \
+"../../../../blinky_soc.srcs/sources_1/execute.v" \
+"../../../../blinky_soc.srcs/sources_1/idecode.v" \
+"../../../../blinky_soc.srcs/sources_1/ifetch.v" \
+"../../../../blinky_soc.srcs/sources_1/inst_mem.v" \
+"../../../../blinky_soc.srcs/sources_1/noobs_cpu.v" \
+"../../../../blinky_soc.srcs/sources_1/register_file.v" \
+"../../../../blinky_soc.srcs/sources_1/transmitter.v" \
+"../../../../blinky_soc.srcs/sources_1/vga/vga.v" \
+"../../../../blinky_soc.srcs/sources_1/vga/vga40x30x2.v" \
+"../../../../blinky_soc.srcs/sources_1/vga/videoram.v" \
+"../../../../blinky_soc.srcs/sim_1/new/tb_top.v" \
+
+# compile glbl module
+verilog xil_defaultlib "glbl.v"
+
+# Do not sort compile order
+nosort

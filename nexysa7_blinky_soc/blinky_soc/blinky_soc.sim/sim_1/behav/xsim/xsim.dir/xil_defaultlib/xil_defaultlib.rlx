@@ -1,0 +1,22 @@
+0.7
+2020.2
+May  7 2023
+15:24:31
+C:/Users/supratimd/blinky_soc/blinky_soc.sim/sim_1/behav/xsim/glbl.v,1683266558,verilog,,,,glbl,,,,,,,,
+C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sim_1/new/tb_top.v,1788525333,verilog,,,,tb_top,,,../../../../blinky_soc.srcs/sources_1,,,,,
+C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/asserts.v,1791570292,verilog,,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/baud_rate_gen.v,,assert_always;assert_impl;assert_never;assert_no_x,,,../../../../blinky_soc.srcs/sources_1,,,,,
+C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/baud_rate_gen.v,1788450393,verilog,,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/blinky_soc.v,,baud_rate_gen,,,../../../../blinky_soc.srcs/sources_1,,,,,
+C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/blinky_soc.v,1791568557,verilog,,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/vga/chardata.v,,blinky_soc,,,../../../../blinky_soc.srcs/sources_1,,,,,
+C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/data_mem.v,1791566794,verilog,,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/execute.v,,data_mem,,,../../../../blinky_soc.srcs/sources_1,,,,,
+C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/execute.v,1791565262,verilog,,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/idecode.v,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/noobs_cpu_defines.vh,execute,,,../../../../blinky_soc.srcs/sources_1,,,,,
+C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/idecode.v,1791565262,verilog,,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/ifetch.v,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/noobs_cpu_defines.vh,idecode,,,../../../../blinky_soc.srcs/sources_1,,,,,
+C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/ifetch.v,1788450428,verilog,,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/inst_mem.v,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/noobs_cpu_defines.vh,ifetch,,,../../../../blinky_soc.srcs/sources_1,,,,,
+C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/inst_mem.v,1788525053,verilog,,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/noobs_cpu.v,,inst_mem,,,../../../../blinky_soc.srcs/sources_1,,,,,
+C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/noobs_cpu.v,1788450428,verilog,,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/register_file.v,,noobs_cpu,,,../../../../blinky_soc.srcs/sources_1,,,,,
+C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/noobs_cpu_defines.vh,1791565262,verilog,,,,,,,,,,,,
+C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/register_file.v,1788450428,verilog,,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/transmitter.v,,reg_file,,,../../../../blinky_soc.srcs/sources_1,,,,,
+C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/transmitter.v,1788450393,verilog,,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/vga/vga.v,,transmitter,,,../../../../blinky_soc.srcs/sources_1,,,,,
+C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/vga/chardata.v,1791535497,verilog,,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/data_mem.v,,pixeldata,,,../../../../blinky_soc.srcs/sources_1,,,,,
+,,,,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/vga/vga40x30x2.v,,vga,,,,,,,,
+,,,,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sources_1/vga/videoram.v,,vga40x30x2,,,,,,,,
+,,,,C:/Users/supratimd/blinky_soc/blinky_soc.srcs/sim_1/new/tb_top.v,,videoram,,,,,,,,
