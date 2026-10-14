@@ -8,6 +8,7 @@
 *.out
 *.swp
 *.swo
+*.so
 noobsCpu
 blinky_soc/data_mem.v
 blinky_soc/inst_mem.v

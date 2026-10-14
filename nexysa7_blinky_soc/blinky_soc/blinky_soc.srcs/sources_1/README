@@ -1,0 +1,6 @@
+There are 2 example programs:
+blinky.asm => blinks an LED, and prints <0-9>Hello World in a loop over UART and VGA
+pong.asm => a simple Pong game
+
+before loading it on to fpga, you may compile one of the roms
+./compile_and_generate_roms.sh <asm file>

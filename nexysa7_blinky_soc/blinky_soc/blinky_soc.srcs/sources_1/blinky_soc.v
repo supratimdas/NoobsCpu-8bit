@@ -17,6 +17,7 @@
 `define VGA_ROW_M_ADDR          11'd103
 `define VGA_COL_M_ADDR          11'd104
 `define VGA_CHAR_DATA_M_ADDR    11'd105
+`define BTN_M_ADDR              11'd106     // read: 0 = none, 1 = up, 2 = down
 
 //------------------------------------------------------------------------------
 // VGA control modes
@@ -44,7 +45,9 @@ module blinky_soc (
     VGA_B,
     VGA_HS,
     VGA_VS,
-    SW
+    SW,
+    BTNU,
+    BTND
 );
 
     //--------------------------------------------------------------------------
@@ -53,6 +56,8 @@ module blinky_soc (
     input           reset_;
     input           clk;
     input  [15:0]   SW;
+    input           BTNU;
+    input           BTND;
     output [15:0]   LED;
     output          uart_tx;
     output [2:0]    VGA_R;
@@ -141,6 +146,18 @@ module blinky_soc (
 
 
     ///////////////////////////////////////////////////////////////////
+    // Push buttons (2-flop synchronizer into the cpu_clk domain)
+    ///////////////////////////////////////////////////////////////////
+    reg [1:0] btn_meta;
+    reg [1:0] btn_sync;
+
+    always @(posedge cpu_clk) begin
+        btn_meta[1:0] <= {BTND, BTNU};
+        btn_sync[1:0] <= btn_meta[1:0];
+    end
+
+
+    ///////////////////////////////////////////////////////////////////
     // UART
     ///////////////////////////////////////////////////////////////////
     wire txclk_en;
@@ -200,9 +217,18 @@ module blinky_soc (
     wire tx_busy;
 
     reg [7:0] cpu_rd_data;
+    wire vga_clear_in_progress = (vga_ctrl[1:0] == `VGA_MODE_CLEAR_SCREEN) && (vga_clr_row_addr < `VGA_NUM_ROWS);
+    wire vga_cleared = (vga_ctrl[1:0] == `VGA_MODE_CLEAR_SCREEN) && (!vga_clear_in_progress);
+
     always @(*) begin
         if ((m_addr == `UART_TX_M_ADDR) && m_rd && m_en) begin
             cpu_rd_data = {7'd0, tx_busy};
+        end
+        else if ((m_addr == `BTN_M_ADDR) && m_rd && m_en) begin
+            cpu_rd_data = {6'd0, btn_sync[1:0]};
+        end
+        else if((m_addr == `VGA_CTRL_REG_M_ADDR)  && m_rd && m_en) begin
+            cpu_rd_data = {4'd0,vga_ctrl[1:0],vga_cleared, vga_clear_in_progress};
         end
         else begin
             cpu_rd_data = m_rd_data;
@@ -223,12 +249,12 @@ module blinky_soc (
     // VGA
     ///////////////////////////////////////////////////////////////////
     wire newline     = ((m_addr == `UART_TX_M_ADDR) && m_wr && m_en && ((m_wr_data == 8'd13)));
-    wire disp_wr_en  =  (m_addr == `UART_TX_M_ADDR) && m_wr && m_en /*&& (m_wr_data != 8'd10)*/ && (m_wr_data != 8'd13) && (m_wr_data != 8'd0);
+    wire disp_wr_en_next  =  (m_addr == `UART_TX_M_ADDR) && m_wr && m_en /*&& (m_wr_data != 8'd10)*/ && (m_wr_data != 8'd13) && (m_wr_data != 8'd0);
 
-    wire vga_ctrl_update = ((m_addr == `VGA_CTRL_REG_M_ADDR)  && m_wr && m_en);
-    wire vga_row_update  = ((m_addr == `VGA_ROW_M_ADDR)       && m_wr && m_en);
-    wire vga_col_update  = ((m_addr == `VGA_COL_M_ADDR)       && m_wr && m_en);
-    wire vga_char_update = ((m_addr == `VGA_CHAR_DATA_M_ADDR) && m_wr && m_en);
+    wire vga_ctrl_update_next = ((m_addr == `VGA_CTRL_REG_M_ADDR)  && m_wr && m_en);
+    wire vga_row_update_next  = ((m_addr == `VGA_ROW_M_ADDR)       && m_wr && m_en);
+    wire vga_col_update_next  = ((m_addr == `VGA_COL_M_ADDR)       && m_wr && m_en);
+    wire vga_char_update_next = ((m_addr == `VGA_CHAR_DATA_M_ADDR) && m_wr && m_en);
 
     reg [1:0] vga_ctrl;
     reg [4:0] row;
@@ -241,6 +267,9 @@ module blinky_soc (
     reg       newline_q;
     wire      LF = newline & (newline ^ newline_q); //a Line Feed pulse
 
+    reg disp_wr_en;
+    reg vga_char_update;
+
     always @(posedge cpu_clk) begin
         if (!system_reset_) begin
             col[5:0]            <= 0;
@@ -249,41 +278,47 @@ module blinky_soc (
             vga_char_data[7:0]  <= 0;
             vga_clr_row_addr    <= 0;
             vga_clr_col_addr    <= 0;
+            vga_char_update     <= 0;
+            disp_wr_en          <= 0;
         end
         else begin
-            if (vga_ctrl_update) begin
+            vga_char_update     <= vga_char_update_next;
+            disp_wr_en          <= disp_wr_en_next;
+            if (vga_ctrl_update_next) begin
                 vga_ctrl[1:0] <= m_wr_data[1:0];
-                if (m_wr_data[1:0] == `VGA_MODE_CLEAR_SCREEN) begin
+                if ((m_wr_data[1:0] == `VGA_MODE_CLEAR_SCREEN) && (!vga_clear_in_progress)) begin
                     vga_clr_row_addr <= 0;
                     vga_clr_col_addr <= 0;
                 end
             end
 
             //go through the rows/address to clear
-            if (vga_clr_row_addr < `VGA_NUM_ROWS) begin
-                if (vga_clr_col_addr < `VGA_NUM_COLS) begin
-                    vga_clr_col_addr <= vga_clr_col_addr + 1'b1;
-                end
+            if ((vga_ctrl[1:0] == `VGA_MODE_CLEAR_SCREEN)) begin
+                if (vga_clr_row_addr < `VGA_NUM_ROWS) begin
+                    if (vga_clr_col_addr < `VGA_NUM_COLS) begin
+                        vga_clr_col_addr <= vga_clr_col_addr + 1'b1;
+                    end
 
-                if (vga_clr_col_addr == (`VGA_NUM_COLS-1)) begin
-                    vga_clr_row_addr <= vga_clr_row_addr + 1'b1;
-                    vga_clr_col_addr <= 0;
+                    if (vga_clr_col_addr == (`VGA_NUM_COLS-1)) begin
+                        vga_clr_row_addr <= vga_clr_row_addr + 1'b1;
+                        vga_clr_col_addr <= 0;
+                    end
                 end
             end
 
-            if (vga_row_update && (vga_ctrl[1:0] == `VGA_MODE_PROG)) begin
+            if (vga_row_update_next && (vga_ctrl[1:0] == `VGA_MODE_PROG)) begin
                 row[4:0] <= m_wr_data[5:0];
             end
 
-            if (vga_col_update && (vga_ctrl[1:0] == `VGA_MODE_PROG)) begin
+            if (vga_col_update_next && (vga_ctrl[1:0] == `VGA_MODE_PROG)) begin
                 col[5:0] <= m_wr_data[5:0];
             end
 
-            if (vga_col_update && (vga_ctrl[1:0] == `VGA_MODE_PROG)) begin
+            if (vga_char_update_next && (vga_ctrl[1:0] == `VGA_MODE_PROG)) begin
                 vga_char_data[7:0] <= m_wr_data[7:0];
             end
 
-            if ((vga_ctrl[1:0] == `VGA_MODE_AUTO_INCR) && (disp_wr_en || LF)) begin
+            if ((vga_ctrl[1:0] == `VGA_MODE_AUTO_INCR) && (disp_wr_en_next || LF)) begin
                 if ((col == (`VGA_NUM_COLS-1)) || LF) begin
                     col[5:0] <= 0;
                 end
@@ -308,7 +343,10 @@ module blinky_soc (
 
     wire [4:0] final_row         = (vga_ctrl[1:0] == `VGA_MODE_CLEAR_SCREEN) ? vga_clr_row_addr : row;
     wire [5:0] final_col         = (vga_ctrl[1:0] == `VGA_MODE_CLEAR_SCREEN) ? vga_clr_col_addr : col;
-    wire [0:0] final_disp_wr_en  = (vga_ctrl[1:0] == `VGA_MODE_CLEAR_SCREEN) ? 1'b1 : disp_wr_en;
+
+    wire [0:0] final_disp_wr_en  = (vga_ctrl[1:0] == `VGA_MODE_CLEAR_SCREEN) ? 1'b1 :
+                                   (vga_ctrl[1:0] == `VGA_MODE_AUTO_INCR)    ? disp_wr_en : vga_char_update;
+
     wire [7:0] final_char_data   = (vga_ctrl[1:0] == `VGA_MODE_CLEAR_SCREEN) ? 8'd32 :
                                    (vga_ctrl[1:0] == `VGA_MODE_AUTO_INCR)    ? tx_data_out : vga_char_data;
 

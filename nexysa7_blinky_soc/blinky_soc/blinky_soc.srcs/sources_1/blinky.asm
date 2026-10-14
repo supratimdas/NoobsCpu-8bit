@@ -1,5 +1,5 @@
 ##blinks an led with changing blinking frequency
-##prints hello world in uart in loop
+##prints hello world in uart in loop, and also on VGA
 .data
     STR:72,101,108,108,111,32,119,111,114,108,100,10,13,0
     TMP_REG0:0

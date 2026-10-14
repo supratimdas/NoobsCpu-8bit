@@ -2,7 +2,7 @@
 
 ![NoobsCPU Block Diagram](https://github.com/supratimdas/NoobsCpu-8bit/raw/master/NoobsCPU.png?raw=true)
 
-A complete, from-scratch 8-bit CPU built as an educational side project — featuring a hand-written assembler, a cycle-accurate C functional model, synthesisable Verilog RTL, a self-checking testbench, and two real SoC examples running on FPGA. The intent is to capture the **entire front-end design and verification flow** in a single, self-contained repo.
+A complete, from-scratch 8-bit CPU built as an educational side project — featuring a hand-written assembler, a cycle-accurate C functional model, synthesisable Verilog RTL, a self-checking testbench, and two real SoC examples running on FPGA: an LED + UART SoC on the Lattice iCEStick, and a UART + VGA SoC on the Digilent Nexys A7 that runs a Pong game. The intent is to capture the **entire front-end design and verification flow** in a single, self-contained repo.
 
 ---
 
@@ -32,6 +32,8 @@ A complete, from-scratch 8-bit CPU built as an educational side project — feat
   - [Running on the C Model](#running-on-the-c-model)
   - [Running RTL Simulation](#running-rtl-simulation)
   - [FPGA Synthesis](#fpga-synthesis)
+- [iCEStick SoC — LED + UART](#icestick-soc--led--uart)
+- [Nexys A7 SoC — UART + VGA](#nexys-a7-soc--uart--vga)
 - [Example Programs](#example-programs)
 - [Gallery](#gallery)
 - [Roadmap](#roadmap)
@@ -82,8 +84,8 @@ NoobsCpu-8bit/
 │       ├── ast_nodes.py  AST node definitions
 │       └── examples/     NoobsC example programs (.nc)
 ├── tests/            25+ self-checking assembly tests + run scripts
-├── blinky_soc/       SoC: LED blinky + "Hello World" over UART TX
-├── tic_tac_toe_soc/  SoC: Tic-tac-toe draw routines
+├── blinky_soc/       iCEStick SoC: LED blinky + "Hello World" over UART TX (open-source flow)
+├── nexysa7_blinky_soc/  Vivado project: Nexys A7 SoC with UART + VGA text display (blinky.asm, pong.asm)
 ├── Doc/              Architecture sketches and ISA spreadsheet
 └── artix7/           Xilinx Artix-7 technology files (for Yosys)
 ```
@@ -92,7 +94,7 @@ NoobsCpu-8bit/
 
 ## Prerequisites
 
-All tooling is free and open-source.
+All tooling is free, and everything except Vivado (needed only for the Nexys A7 SoC) is open-source.
 
 | Tool | Purpose | Install |
 |---|---|---|
@@ -102,9 +104,10 @@ All tooling is free and open-source.
 | **Perl** | Run the assembler and BRAM generator | `sudo apt install perl` (usually pre-installed) |
 | **Python 3.8+** | Run the NoobsC compiler | `sudo apt install python3` (usually pre-installed) |
 | **Yosys** | Synthesis for FPGA targets | `sudo apt install yosys` or build from source |
-| **nextpnr / icestorm** | Place-and-route for Lattice iCE40 | See [icestorm.org](http://www.clifford.at/icestorm/) |
+| **arachne-pnr + icestorm** | Place-and-route, bitstream packing (`icepack`) and programming (`iceprog`) for the iCEStick | See [icestorm.org](http://www.clifford.at/icestorm/) |
+| **Xilinx Vivado** (free edition) | Build the Nexys A7 SoC | From AMD/Xilinx |
 
-> For Xilinx Nexys A7, Yosys uses the provided `artix7/` technology database together with nextpnr-xilinx (or Vivado for bitstream generation).
+> The experimental open-source Xilinx flow for `blinky_soc` uses Yosys with the provided `artix7/` technology database and nextpnr-xilinx.
 
 ---
 
@@ -157,7 +160,7 @@ All four general-purpose registers are also **memory-mapped** at the lowest data
 | 0x007 | — | Reserved |
 | 0x008 – 0x7FF | User data | First `.data` label resolves to address 8 |
 
-> **Note:** Addresses beyond the user data area can be used for **memory-mapped peripherals**. In `blinky_soc`, address 100 (0x64) is the LED GPIO register and address 101 (0x65) is the UART TX register.
+> **Note:** Addresses beyond the user data area can be used for **memory-mapped peripherals**. In both SoCs, address 100 (0x64) is the LED GPIO register and address 101 (0x65) is the UART TX register; the Nexys A7 SoC adds a VGA display and push buttons at addresses 102–106. See [iCEStick SoC — LED + UART](#icestick-soc--led--uart) and [Nexys A7 SoC — UART + VGA](#nexys-a7-soc--uart--vga).
 
 ### Status Flags
 
@@ -661,24 +664,109 @@ gtkwave test.vcd
 
 ### FPGA Synthesis
 
-**Lattice iCE40 (iCEStick)**
+There are two FPGA SoCs, each with its own section covering peripherals, memory map, example programs and build steps:
+
+- [iCEStick SoC — LED + UART](#icestick-soc--led--uart) — Lattice iCE40, fully open-source Yosys / arachne-pnr / icestorm flow
+- [Nexys A7 SoC — UART + VGA](#nexys-a7-soc--uart--vga) — Xilinx Artix-7, Vivado project
+
+In both, the FPGA memory images (`inst_mem.v`, `data_mem.v`) are generated from the program's `.asm` source by `utils/gen_fpga_mem.pl` — no manual hex conversion needed.
+
+---
+
+## iCEStick SoC — LED + UART
+
+`blinky_soc/` builds a minimal NoobsCpu SoC for the Lattice iCEStick (iCE40-HX1K) using the fully open-source Yosys → arachne-pnr → icestorm flow. Besides the CPU and its memories it has one LED and a **UART transmitter** (115200 baud). The CPU runs from the board's 12 MHz oscillator divided by 64 (187.5 kHz); an iCE40 PLL generates a 50.25 MHz clock for the UART baud-rate generator, and an internal power-on reset holds the CPU in reset for the first 4096 clock cycles.
+
+**Memory-mapped I/O**
+
+| Address | Access | Function |
+|---|---|---|
+| 100 | write | Green LED — any non-zero value turns it on |
+| 101 | write | UART TX byte |
+| 101 | read | UART busy flag (bit 0) |
+
+**Pins** (`pins.pcf`)
+
+| Signal | FPGA pin | Board location |
+|---|---|---|
+| `clk` | 21 | 12 MHz oscillator |
+| `LED` | 95 | Green LED (centre) |
+| `uart_tx` | 91 | PMOD pin 10 |
+| `reset_` | 81 | PMOD pin 4 (not used by the iCE40 build, which uses the power-on reset) |
+
+UART TX is routed to the PMOD header, so connect a 3.3 V USB-serial adapter to PMOD pin 10 (plus GND) and open a terminal at 115200 baud.
+
+**Example programs** (in `blinky_soc/`)
+
+| Program | Description |
+|---|---|
+| `blinky.asm` | The default program: toggles the LED and prints `Hello World` over the UART, with a delay between iterations — see [Blinky + UART Hello World](#blinky--uart-hello-world-blinky_socblinkyasm) |
+| `blinky_without_delay.asm` | The same without the delay loop: prints `Hello World` back to back, toggling the LED once per line |
+
+**Building**
+
+The Makefile assembles the program, regenerates `inst_mem.v` / `data_mem.v` and runs the whole flow:
 
 ```bash
 cd blinky_soc
-make TARGET=lattice
-# produces blinky_soc.bin; flash with iceprog
-iceprog blinky_soc.bin
+make            # assemble blinky.asm, synthesise, place & route -> blinky_soc.bin
+make prog       # flash the iCEStick with iceprog
+make timings    # optional: static timing report with icetime
 ```
 
-**Xilinx Artix-7 (Nexys A7)**
+To build another program, start from a clean tree so the memory images are regenerated: `make clean && make ASM_FILE=blinky_without_delay.asm`. The Makefile runs Yosys from `/usr/local/bin/yosys`; pass `YOSYS=yosys` to use the one on your `PATH`.
+
+The same `blinky_soc` RTL can also target the Nexys A7 through an experimental open-source Xilinx flow (`make TARGET=xilinx`: Yosys + nextpnr-xilinx + prjxray tools, using `pins_xilinx_nexysA7.xdc` and the `artix7/` database), but nextpnr-xilinx currently runs into routing problems. Use the Vivado-based [Nexys A7 SoC](#nexys-a7-soc--uart--vga) for that board.
+
+---
+
+## Nexys A7 SoC — UART + VGA
+
+`nexysa7_blinky_soc/blinky_soc/` is a Vivado project that builds a NoobsCpu SoC for the Digilent Nexys A7 (Artix-7). Alongside the LED and the usual **UART TX** (115200 baud, on the board's USB-UART), it implements a **VGA controller**: a 40 × 30 character text display on a 640 × 480 VGA output, plus up/down push-button input. The sources (including the SoC's own copy of the CPU RTL) are in `blinky_soc.srcs/sources_1/`; pin constraints are in `blinky_soc.srcs/constrs_1/new/blinky_soc_nexys_a7.xdc`. The CPU runs at 100 MHz / 64 = 1.5625 MHz.
+
+**Memory-mapped I/O**
+
+| Address | Access | Function |
+|---|---|---|
+| 100 | write | LED0 — any non-zero value turns it on |
+| 101 | write | UART TX byte (in VGA auto mode the byte is also printed on screen) |
+| 101 | read | UART busy flag (bit 0) |
+| 102 | write | VGA mode: 0 = auto (terminal), 1 = clear screen, 2 = programmed |
+| 102 | read | VGA status: `{4'b0, mode[1:0], cleared, clear_in_progress}` |
+| 103 | write | VGA row (0–29), programmed mode |
+| 104 | write | VGA column (0–39), programmed mode |
+| 105 | write | Character to draw at (row, column), programmed mode |
+| 106 | read | Buttons: 0 = none, 1 = up (BTNU), 2 = down (BTND) |
+
+**VGA modes**
+
+- **Auto (0)** — bytes written to the UART address also appear on screen like a terminal: the cursor advances one column per character, CR (13) starts a new line, and NUL (0) is not drawn.
+- **Clear (1)** — the controller writes a space into all 1200 cells, one per CPU cycle. Poll bit 1 of address 102 until the clear has finished, then switch to another mode.
+- **Programmed (2)** — write the row, the column, then the character to place any glyph anywhere on screen.
+
+The font ROM (`vga/prom.txt`) holds 128 glyphs, including graphics in the control-code range (for example 7 = bullet, 8 = solid box, 22 = thick bar), which Pong uses for the ball, paddles and walls.
+
+Because the I/O registers sit inside the data address space, a program's `.data` section must end below address 100.
+
+**Example programs** (in `blinky_soc.srcs/sources_1/`)
+
+| Program | Description |
+|---|---|
+| `blinky.asm` | The standard blinky: toggles the LED and prints a counter digit followed by `Hello World` over the UART in a loop; the same text appears on the VGA display, which is cleared every 30 lines |
+| `pong.asm` | A Pong game against a CPU-controlled paddle, drawn on the VGA display and played with BTNU / BTND — see [Pong](#pong-pongasm-nexys-a7-soc) |
+
+**Building**
+
+Assemble the program you want to run and regenerate the memory images (this rewrites `inst_mem.v` and `data_mem.v`):
 
 ```bash
-cd blinky_soc
-make TARGET=xilinx
-# produces blinky_soc.bit; program with Vivado hardware manager
+cd nexysa7_blinky_soc/blinky_soc/blinky_soc.srcs/sources_1
+perl ../../../../utils/noobsASM.pl pong.asm
+perl ../../../../utils/gen_fpga_mem.pl -input_file code.txt -type inst -target xilinx
+perl ../../../../utils/gen_fpga_mem.pl -input_file data.txt -type data -target xilinx
 ```
 
-The FPGA memory images are generated automatically from the `.asm` source file by the `gen_fpga_mem.pl` utility — no manual hex conversion needed.
+Then open `nexysa7_blinky_soc/blinky_soc/blinky_soc.xpr` in Vivado, generate the bitstream and program the board from the Hardware Manager. Connect a VGA monitor, and a serial terminal at 115200 baud to see the UART output.
 
 ---
 
@@ -686,25 +774,26 @@ The FPGA memory images are generated automatically from the `.asm` source file b
 
 ### Blinky + UART Hello World (`blinky_soc/blinky.asm`)
 
-Blinks an on-board LED and sends `"Hello World\r\n"` over UART in an infinite loop. Demonstrates subroutine calls, memory-mapped GPIO and UART, and indirect addressing for string traversal.
+The default program of the [iCEStick SoC](#icestick-soc--led--uart). Blinks the LED and sends `"Hello World\n\r"` over UART in an infinite loop. Demonstrates subroutine calls, memory-mapped GPIO and UART, and indirect addressing for string traversal. (The `DELAY` / `DELAY_XX` delay routines are omitted below.)
 
 ```asm
 .data
-    DELAY1: 0xff
-    DELAY2: 0xff
-    STR:    72,101,108,108,111,32,119,111,114,108,100,10,13,0
+    STR:      72,101,108,108,111,32,119,111,114,108,100,10,13,0
     TMP_REG0: 0
     TMP_REG1: 0
     TMP_REG3: 0
+    DELAY1:   0xff
+    DELAY2:   0xff
 .code
             LOAD    R0, 4           # read Control Register
-            ANDI    R0, R0, 0x07    # preserve stack-pointer upper bits
+            ANDI    R0, R0, 0x07    # move the stack to page 1 (0x100)
             STORE   R0, 4           # write back
             XOR     R0, R0          # R0 = 0
 FOREVER:    STORE   R0, 100         # 100 = LED GPIO address
             XORI    R0, R0, 0xff    # toggle LED
-            CALL    DELAY_4X
             CALL    PRINT_HELLO_WORLD
+            CLR_BC                  # clear the branch bits its JMPNZ left behind
+            CALL    DELAY_XX        # otherwise this plain CALL would be conditional
             JMPNC   FOREVER         # loop forever
 
 PRINT_HELLO_WORLD:  XOR     R3, R3
@@ -719,6 +808,28 @@ PRINT_HELLO_WORLD:  XOR     R3, R3
                     SUBI    R1, R1, 0  # refresh Z flag from R1
                     JMPNZ   PRINT_LOOP # loop until null terminator
                     RET
+```
+
+The Nexys A7 SoC has its own `blinky.asm` (in `nexysa7_blinky_soc/blinky_soc/blinky_soc.srcs/sources_1/`) that additionally prints the text on the VGA display.
+
+### Pong (`pong.asm`, Nexys A7 SoC)
+
+A complete Pong game for the [Nexys A7 SoC](#nexys-a7-soc--uart--vga), in `nexysa7_blinky_soc/blinky_soc/blinky_soc.srcs/sources_1/pong.asm` (about 750 bytes of code).
+
+- Your paddle is on the left, controlled with BTNU / BTND; the CPU plays the right paddle. Press either button to start, first to 9 points wins, and a button press starts a new game.
+- The outer rows of a paddle return the ball at 45°, the inner rows at a shallow angle — use them to aim away from the CPU.
+- The CPU paddle only reacts once the ball is heading its way and has crossed a set column, so well-angled shots beat it.
+- The game runs on a ~30 ms tick, toggling LED0 every frame as a heartbeat.
+
+Everything tunable lives in the `.data` section: court layout (width, paddle/net/text columns — currently a 35-column court, with values for 30 and 40 listed in the comments), frame delay, pause length, CPU difficulty (`AI_SPEED`, `AI_REACT_COL`) and the glyphs used for ball, paddles, walls and net.
+
+Drawing uses the VGA controller's programmed mode — one character is three stores:
+
+```asm
+PUT_CHAR:   STORE   R1, 103    # select row
+            STORE   R2, 104    # select column
+            STORE   R0, 105    # draw the character
+            RET
 ```
 
 ### Fibonacci (`tests/fibonacci.asm`)
@@ -826,15 +937,14 @@ INNER_LOOP: LOAD   R3, TMP_REG3
 
 ## Roadmap
 
-- [ ] VGA controller peripheral for `blinky_soc`
 - [ ] PS/2 mouse controller peripheral
 - [ ] SPI and UART RX peripherals
-- [ ] Tic-tac-toe game running end-to-end on FPGA
 
 ---
 
 ## ERRATA
-- Real working example only tested in iCEStick FPGA. Xilinx FPGA still not supported.
+- The open-source Xilinx flow (`make -C blinky_soc TARGET=xilinx`, nextpnr-xilinx) currently runs into routing problems, so Xilinx builds are done with Vivado (see [Nexys A7 SoC](#nexys-a7-soc--uart--vga)).
+- On the Nexys A7 board the rightmost columns of the 40-column VGA text display are currently not visible, so `pong.asm` uses a 35-column court.
 - Assembly files (`.asm`) use `#` for line comments. NoobsC source files (`.nc`) use `//` and `/* */` — `#` is not valid in NoobsC source.
 
 ---
